@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0f0f0f;
+  --foreground: #fafafa;
+  --accent: #ff4757;
+  --card-bg: #1a1a1a;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  min-height: 100dvh;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Mobile-first, TikTok-inspired: full bleed, rounded corners, dark theme */
+@layer components {
+  .screen-card {
+    @apply bg-[var(--card-bg)] rounded-2xl border border-white/10 shadow-xl;
+  }
+  .btn-primary {
+    @apply px-6 py-3 rounded-xl font-semibold bg-imposter text-white active:scale-95 transition-transform;
+  }
+  .btn-secondary {
+    @apply px-6 py-3 rounded-xl font-semibold bg-white/10 text-white border border-white/20 active:scale-95 transition-transform;
+  }
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-imposter;
+  }
+}
