@@ -42,7 +42,13 @@ export interface GameState {
   roundData?: {
     theme?: string;
     clues?: { playerId: string; name: string; clue: string }[];
-    voteResults?: { ejectedId?: string; ejectedName?: string; wasImposter?: boolean };
+    voteResults?: {
+      ejectedId?: string | null;
+      ejectedName?: string | null;
+      wasImposter?: boolean;
+      skipVotes?: number;
+      skipped?: boolean;
+    };
   };
   currentCluePlayerId?: string;
   currentCluePlayerName?: string;

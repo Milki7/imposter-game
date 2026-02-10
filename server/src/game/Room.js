@@ -1,4 +1,4 @@
-import { PHASE, POINTS, DEFAULT_TIMERS, ROUND_WORDS, generateRoomCode } from './constants.js';
+import { PHASE, POINTS, VOTE_SKIP, DEFAULT_TIMERS, ROUND_WORDS, generateRoomCode } from './constants.js';
 
 /**
  * @typedef {Object} Player
@@ -218,9 +218,13 @@ export class Room {
 
   /**
    * @param {string} voterId
-   * @param {string} targetId
+   * @param {string} targetId - Player ID or VOTE_SKIP
    */
   submitVote(voterId, targetId) {
+    if (targetId === VOTE_SKIP) {
+      this.roundData.votes[voterId] = VOTE_SKIP;
+      return true;
+    }
     if (!this.players.has(targetId) || voterId === targetId) return false;
     this.roundData.votes[voterId] = targetId;
     return true;
@@ -235,19 +239,30 @@ export class Room {
   /** Compute vote counts and ejected player */
   tallyVotes() {
     const votes = this.roundData.votes;
+    let skipVotes = 0;
     for (const id of Object.values(votes)) {
-      const p = this.players.get(id);
-      if (p) p.voteCount++;
+      if (id === VOTE_SKIP) {
+        skipVotes++;
+      } else {
+        const p = this.players.get(id);
+        if (p) p.voteCount++;
+      }
     }
     const list = this.getPlayerList();
-    const maxVotes = Math.max(...list.map((p) => p.voteCount), 0);
+    const maxPlayerVotes = Math.max(...list.map((p) => p.voteCount), 0);
+    const maxVotes = Math.max(maxPlayerVotes, skipVotes);
     const ejected = list.filter((p) => p.voteCount === maxVotes);
     const singleEjected = ejected.length === 1 ? ejected[0] : null;
+    const skipWins = skipVotes === maxVotes;
+    const skipTies = skipVotes > 0 && skipVotes === maxPlayerVotes && ejected.length > 0;
+    const skipped = skipWins || skipTies;
     this.roundData.voteResults = {
-      ejectedId: singleEjected?.id ?? null,
-      ejectedName: singleEjected?.name ?? null,
-      wasImposter: singleEjected?.role === 'imposter',
+      ejectedId: skipped ? null : singleEjected?.id ?? null,
+      ejectedName: skipped ? null : singleEjected?.name ?? null,
+      wasImposter: skipped ? false : singleEjected?.role === 'imposter',
       maxVotes,
+      skipVotes,
+      skipped,
     };
   }
 
@@ -343,7 +358,7 @@ export class Room {
     if (!this.roundData) return null;
     const rd = { ...this.roundData };
     rd.word = undefined; // Never expose secret word to clients except for comparison
-    if (this.phase === PHASE.VOTING) {
+    if (this.phase === PHASE.DISCUSSION) {
       rd.votes = undefined;
       rd.voteResults = undefined;
     }

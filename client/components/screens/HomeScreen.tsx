@@ -6,7 +6,6 @@ import { LobbyScreen } from './LobbyScreen';
 import { RoleRevealScreen } from './RoleRevealScreen';
 import { ClueInputScreen } from './ClueInputScreen';
 import { DiscussionScreen } from './DiscussionScreen';
-import { VotingScreen } from './VotingScreen';
 import { RoundResultsScreen } from './RoundResultsScreen';
 import { ImposterLastChanceScreen } from './ImposterLastChanceScreen';
 import { FinalLeaderboardScreen } from './FinalLeaderboardScreen';
@@ -26,8 +25,7 @@ export function HomeScreen() {
     case 'clue_input':
       return <ClueInputScreen />;
     case 'discussion':
-    case 'voting':
-      return state.phase === 'voting' ? <VotingScreen /> : <DiscussionScreen />;
+      return <DiscussionScreen />;
     case 'round_results':
       return <RoundResultsScreen />;
     case 'imposter_last_chance':

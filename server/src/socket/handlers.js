@@ -57,44 +57,50 @@ function advancePhase(room, phase, delayMs = 0) {
 }
 
 /**
- * Start discussion -> voting -> round end flow
+ * Proceed to round results after voting (from tally)
  * @param {Room} room
  * @param {Server} io
+ */
+function proceedToRoundResults(room, io) {
+  const code = room.code;
+  const lastChanceSec = (room.timers?.imposterLastChance ?? 10) * 1000;
+  const { ejectedId, wasImposter } = room.roundData.voteResults;
+  io.to(code).emit(EVENTS.VOTING_ENDED, { ejectedId, wasImposter });
+  advancePhase(room, PHASE.ROUND_RESULTS, 0);
+  if (ejectedId && wasImposter) {
+    advancePhase(room, PHASE.IMPOSTER_LAST_CHANCE, 2000);
+    const lastChanceTimeout = setTimeout(() => {
+      clearPhaseTimeout(code);
+      finishRound(room, io);
+    }, lastChanceSec);
+    setPhaseTimeout(code, lastChanceTimeout);
+    io.to(ejectedId).emit(EVENTS.IMPOSTER_LAST_CHANCE, {
+      seconds: room.timers?.imposterLastChance ?? 10,
+    });
+  } else {
+    setTimeout(() => finishRound(room, io), 5000);
+  }
+}
+
+/**
+ * Start debate phase: discussion + voting UI visible, single timer.
+ * When all votes in, proceed immediately; otherwise wait for timer.
  */
 function startDiscussionFlow(room, io) {
   const code = room.code;
   const discussionSec = (room.timers?.discussion ?? 120) * 1000;
   const votingSec = (room.timers?.voting ?? 30) * 1000;
-  const lastChanceSec = (room.timers?.imposterLastChance ?? 10) * 1000;
+  const totalSec = discussionSec + votingSec;
 
   advancePhase(room, PHASE.DISCUSSION, 0);
-  const discTimeout = setTimeout(() => {
-    advancePhase(room, PHASE.VOTING, 0);
-    const voteTimeout = setTimeout(() => {
-      clearPhaseTimeout(code);
-      if (room.phase !== PHASE.VOTING) return;
-      room.tallyVotes();
-      room.awardPoints();
-      const { ejectedId, wasImposter } = room.roundData.voteResults;
-      io.to(code).emit(EVENTS.VOTING_ENDED, { ejectedId, wasImposter });
-      advancePhase(room, PHASE.ROUND_RESULTS, 0);
-      if (ejectedId && wasImposter) {
-        advancePhase(room, PHASE.IMPOSTER_LAST_CHANCE, 2000);
-        const lastChanceTimeout = setTimeout(() => {
-          clearPhaseTimeout(code);
-          finishRound(room, io);
-        }, lastChanceSec);
-        setPhaseTimeout(code, lastChanceTimeout);
-        io.to(ejectedId).emit(EVENTS.IMPOSTER_LAST_CHANCE, {
-          seconds: room.timers?.imposterLastChance ?? 10,
-        });
-      } else {
-        setTimeout(() => finishRound(room, io), 5000);
-      }
-    }, votingSec);
-    setPhaseTimeout(code, voteTimeout);
-  }, discussionSec);
-  setPhaseTimeout(code, discTimeout);
+  const debateTimeout = setTimeout(() => {
+    clearPhaseTimeout(code);
+    if (room.phase !== PHASE.DISCUSSION) return;
+    room.tallyVotes();
+    room.awardPoints();
+    proceedToRoundResults(room, io);
+  }, totalSec);
+  setPhaseTimeout(code, debateTimeout);
 }
 
 /**
@@ -292,7 +298,7 @@ export function registerSocketHandlers(io) {
 
     socket.on(EVENTS.SUBMIT_VOTE, (data) => {
       const room = getRoomByPlayer(socket.id);
-      if (!room || room.phase !== PHASE.VOTING) return;
+      if (!room || room.phase !== PHASE.DISCUSSION) return;
       const targetId = data?.targetId;
       if (!targetId) return;
       const ok = room.submitVote(socket.id, targetId);
@@ -302,23 +308,7 @@ export function registerSocketHandlers(io) {
           clearPhaseTimeout(room.code);
           room.tallyVotes();
           room.awardPoints();
-          const { ejectedId, wasImposter } = room.roundData.voteResults;
-          io.to(room.code).emit(EVENTS.VOTING_ENDED, { ejectedId, wasImposter });
-          advancePhase(room, PHASE.ROUND_RESULTS, 0);
-          if (ejectedId && wasImposter) {
-            advancePhase(room, PHASE.IMPOSTER_LAST_CHANCE, 2000);
-            const lastChanceSec = (room.timers?.imposterLastChance ?? 10) * 1000;
-            const t = setTimeout(() => {
-              clearPhaseTimeout(room.code);
-              finishRound(room, io);
-            }, lastChanceSec);
-            setPhaseTimeout(room.code, t);
-            io.to(ejectedId).emit(EVENTS.IMPOSTER_LAST_CHANCE, {
-              seconds: room.timers?.imposterLastChance ?? 10,
-            });
-          } else {
-            setTimeout(() => finishRound(room, io), 5000);
-          }
+          proceedToRoundResults(room, io);
         }
       }
     });

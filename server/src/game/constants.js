@@ -12,6 +12,9 @@ export const PHASE = {
   FINAL_LEADERBOARD: 'final_leaderboard',
 };
 
+/** Special vote value when player chooses to skip rather than eject someone */
+export const VOTE_SKIP = '__SKIP__';
+
 /** Point values */
 export const POINTS = {
   INNOCENT_CORRECT_VOTE: 200,
