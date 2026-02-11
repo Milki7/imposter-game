@@ -42,6 +42,7 @@ export interface GameState {
   roundData?: {
     theme?: string;
     clues?: { playerId: string; name: string; clue: string }[];
+    votedPlayerIds?: string[];
     voteResults?: {
       ejectedId?: string | null;
       ejectedName?: string | null;
@@ -145,6 +146,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setState(newState);
     });
 
+    socket.on(EVENTS.VOTERS_UPDATED, (data: { votedPlayerIds: string[] }) => {
+      setState((s) => ({
+        ...s,
+        roundData: {
+          ...s.roundData,
+          votedPlayerIds: data?.votedPlayerIds ?? [],
+        },
+      }));
+    });
+
     socket.on(EVENTS.CHAT_MESSAGE, (msg: { playerId: string; name: string; message: string; timestamp: number }) => {
       setState((s) => ({
         ...s,
@@ -184,6 +195,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off(EVENTS.GAME_STARTED);
       socket.off(EVENTS.PHASE_CHANGED);
       socket.off(EVENTS.GAME_STATE);
+      socket.off(EVENTS.VOTERS_UPDATED);
       socket.off(EVENTS.CHAT_MESSAGE);
       socket.off(EVENTS.ROUND_RESULTS);
       socket.off(EVENTS.GAME_OVER);

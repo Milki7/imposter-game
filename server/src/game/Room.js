@@ -359,6 +359,7 @@ export class Room {
     const rd = { ...this.roundData };
     rd.word = undefined; // Never expose secret word to clients except for comparison
     if (this.phase === PHASE.DISCUSSION) {
+      rd.votedPlayerIds = Object.keys(this.roundData.votes || {});
       rd.votes = undefined;
       rd.voteResults = undefined;
     }

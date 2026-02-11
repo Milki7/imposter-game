@@ -8,23 +8,37 @@ import { VOTE_SKIP } from '@/lib/constants';
 export function DiscussionScreen() {
   const { state, submitVote, socketId } = useGame();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hasVotedOptimistic, setHasVotedOptimistic] = useState(false);
   const clues = state.roundData?.clues ?? [];
   const others = state.players.filter((p) => p.id !== socketId);
-  const discussionTimer = state.timers?.discussion ?? 120;
-  const votingTimer = state.timers?.voting ?? 30;
-  const totalTimer = discussionTimer + votingTimer;
+  const votedPlayerIds = state.roundData?.votedPlayerIds ?? [];
+  const hasVoted = hasVotedOptimistic || (socketId ? votedPlayerIds.includes(socketId) : false);
+  const voteCount = votedPlayerIds.length;
+  const totalPlayers = state.players.length;
 
   const handleVote = () => {
-    if (selectedId) submitVote(selectedId);
+    if (selectedId && !hasVoted) {
+      setHasVotedOptimistic(true);
+      submitVote(selectedId);
+    }
   };
+
+  const selectedStyle = 'border-innocent border-2 bg-innocent/20 ring-2 ring-innocent/50';
+  const unselectedStyle = 'border-white/20 bg-white/5 hover:bg-white/10';
 
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
       <div className="screen-card p-6 animate-slide-up">
         <h2 className="text-xl font-bold mb-2">Debate & Vote</h2>
         <p className="text-white/60 text-sm mb-4">
-          Timer: {totalTimer}s — Chat and vote. All votes in? Results show immediately.
+          All votes in? Results show immediately. 1 player left? 10s hurry-up.
         </p>
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-white/80 text-sm font-medium">Status:</span>
+          <span className="text-innocent text-sm font-medium">
+            {voteCount}/{totalPlayers} voted
+          </span>
+        </div>
         <div className="space-y-2 mb-4">
           <p className="text-white/80 text-sm font-medium">Clues given:</p>
           {clues.map((c) => (
@@ -39,36 +53,44 @@ export function DiscussionScreen() {
           {others.map((p) => (
             <button
               key={p.id}
-              onClick={() => setSelectedId(p.id)}
-              className={`w-full p-3 rounded-xl text-left border transition-colors ${
-                selectedId === p.id
-                  ? 'border-imposter bg-imposter/20'
-                  : 'border-white/20 bg-white/5 hover:bg-white/10'
-              }`}
+              onClick={() => !hasVoted && setSelectedId(p.id)}
+              disabled={hasVoted}
+              className={`w-full p-3 rounded-xl text-left border-2 transition-all flex items-center gap-2 ${
+                hasVoted ? 'opacity-70 cursor-not-allowed' : ''
+              } ${selectedId === p.id ? selectedStyle : unselectedStyle}`}
             >
+              <span
+                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                  votedPlayerIds.includes(p.id) ? 'bg-innocent' : 'bg-white/30'
+                }`}
+                title={votedPlayerIds.includes(p.id) ? 'Voted' : 'Waiting'}
+              />
               {p.name}
             </button>
           ))}
         </div>
         <div className="mb-4">
           <button
-            onClick={() => setSelectedId(VOTE_SKIP)}
-            className={`w-full p-3 rounded-xl text-center border transition-colors ${
-              selectedId === VOTE_SKIP
-                ? 'border-imposter bg-imposter/20'
-                : 'border-white/20 bg-white/5 hover:bg-white/10'
-            }`}
+            onClick={() => !hasVoted && setSelectedId(VOTE_SKIP)}
+            disabled={hasVoted}
+            className={`w-full p-3 rounded-xl text-center border-2 transition-all ${
+              hasVoted ? 'opacity-70 cursor-not-allowed' : ''
+            } ${selectedId === VOTE_SKIP ? selectedStyle : unselectedStyle}`}
           >
             Skip Vote
           </button>
         </div>
-        <button
-          onClick={handleVote}
-          disabled={!selectedId}
-          className="btn-primary w-full py-4 disabled:opacity-50"
-        >
-          Submit Vote
-        </button>
+        {hasVoted ? (
+          <p className="text-innocent font-medium py-3 text-center">Vote submitted</p>
+        ) : (
+          <button
+            onClick={handleVote}
+            disabled={!selectedId}
+            className="btn-primary w-full py-4 disabled:opacity-50"
+          >
+            Submit Vote
+          </button>
+        )}
       </div>
       <Chat />
     </div>

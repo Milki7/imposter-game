@@ -23,6 +23,12 @@ export const POINTS = {
   IMPOSTER_SECRET_WORD_GUESS: 150,
 };
 
+/** Seconds for "hurry up" when only 1 player left to vote */
+export const HURRY_UP_SECONDS = 10;
+
+/** Max debate phase duration (safety fallback, seconds) */
+export const MAX_DEBATE_SECONDS = 300;
+
 /** Default timers (seconds) */
 export const DEFAULT_TIMERS = {
   CLUE_INPUT: 30,

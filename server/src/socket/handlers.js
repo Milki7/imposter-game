@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { PHASE } from '../game/constants.js';
+import { PHASE, HURRY_UP_SECONDS, MAX_DEBATE_SECONDS } from '../game/constants.js';
 import {
   getRoomByPlayer,
   createRoomWithHost,
@@ -83,24 +83,49 @@ function proceedToRoundResults(room, io) {
 }
 
 /**
- * Start debate phase: discussion + voting UI visible, single timer.
- * When all votes in, proceed immediately; otherwise wait for timer.
+ * Emit voters list to room and optionally start hurry-up if 1 left.
+ * @param {Room} room
+ * @param {Server} io
+ */
+function broadcastVotersAndMaybeHurryUp(room, io) {
+  const code = room.code;
+  const votedCount = Object.keys(room.roundData?.votes || {}).length;
+  const totalPlayers = room.getPlayerList().length;
+  const votedPlayerIds = Object.keys(room.roundData?.votes || {});
+
+  io.to(code).emit(EVENTS.VOTERS_UPDATED, { votedPlayerIds });
+
+  if (votedCount >= totalPlayers) return;
+  const leftToVote = totalPlayers - votedCount;
+  if (leftToVote === 1) {
+    clearPhaseTimeout(code);
+    const hurryUpTimeout = setTimeout(() => {
+      clearPhaseTimeout(code);
+      if (room.phase !== PHASE.DISCUSSION) return;
+      room.tallyVotes();
+      room.awardPoints();
+      proceedToRoundResults(room, io);
+    }, HURRY_UP_SECONDS * 1000);
+    setPhaseTimeout(code, hurryUpTimeout);
+  }
+}
+
+/**
+ * Start debate phase: no fixed wait. Auto-advance when all vote.
+ * When 1 player left to vote, 10s hurry-up. Long fallback for edge cases.
  */
 function startDiscussionFlow(room, io) {
   const code = room.code;
-  const discussionSec = (room.timers?.discussion ?? 120) * 1000;
-  const votingSec = (room.timers?.voting ?? 30) * 1000;
-  const totalSec = discussionSec + votingSec;
 
   advancePhase(room, PHASE.DISCUSSION, 0);
-  const debateTimeout = setTimeout(() => {
+  const fallbackTimeout = setTimeout(() => {
     clearPhaseTimeout(code);
     if (room.phase !== PHASE.DISCUSSION) return;
     room.tallyVotes();
     room.awardPoints();
     proceedToRoundResults(room, io);
-  }, totalSec);
-  setPhaseTimeout(code, debateTimeout);
+  }, MAX_DEBATE_SECONDS * 1000);
+  setPhaseTimeout(code, fallbackTimeout);
 }
 
 /**
@@ -309,6 +334,8 @@ export function registerSocketHandlers(io) {
           room.tallyVotes();
           room.awardPoints();
           proceedToRoundResults(room, io);
+        } else {
+          broadcastVotersAndMaybeHurryUp(room, io);
         }
       }
     });
