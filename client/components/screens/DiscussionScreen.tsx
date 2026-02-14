@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/components/GameProvider';
 import { Chat } from '@/components/Chat';
 import { VOTE_SKIP } from '@/lib/constants';
+
+const HURRY_UP_SECONDS = 10;
 
 export function DiscussionScreen() {
   const { state, submitVote, socketId } = useGame();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hasVotedOptimistic, setHasVotedOptimistic] = useState(false);
+  const [hurryUpSeconds, setHurryUpSeconds] = useState<number | null>(null);
+  const hurryUpStarted = useRef(false);
   const clues = state.roundData?.clues ?? [];
   const votedPlayerIds = state.roundData?.votedPlayerIds ?? [];
   const ejectedPlayerIds = state.ejectedPlayerIds ?? [];
@@ -18,6 +22,24 @@ export function DiscussionScreen() {
   const voteCount = votedPlayerIds.length;
   const totalPlayers = activePlayers.length;
   const others = activePlayers.filter((p) => p.id !== socketId);
+  const oneLeftToVote = totalPlayers > 1 && voteCount === totalPlayers - 1;
+
+  useEffect(() => {
+    if (oneLeftToVote && !hurryUpStarted.current) {
+      hurryUpStarted.current = true;
+      setHurryUpSeconds(HURRY_UP_SECONDS);
+    }
+    if (!oneLeftToVote) {
+      hurryUpStarted.current = false;
+      setHurryUpSeconds(null);
+    }
+  }, [oneLeftToVote]);
+
+  useEffect(() => {
+    if (hurryUpSeconds === null || hurryUpSeconds <= 0) return;
+    const t = setInterval(() => setHurryUpSeconds((s) => (s != null && s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [hurryUpSeconds]);
 
   const handleVote = () => {
     if (selectedId && !hasVoted) {
@@ -53,14 +75,20 @@ export function DiscussionScreen() {
     <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
       <div className="screen-card p-6 animate-slide-up">
         <h2 className="text-xl font-bold mb-2">Debate & Vote</h2>
-        <p className="text-white/60 text-sm mb-4">
-          All votes in? Results show immediately. 1 player left? 10s hurry-up.
-        </p>
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-white/80 text-sm font-medium">Status:</span>
-          <span className="text-innocent text-sm font-medium">
-            {voteCount}/{totalPlayers} voted
-          </span>
+        <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+          <p className="text-white/60 text-sm">
+            All votes in? Results show immediately.
+          </p>
+          <div className="flex items-center gap-3">
+            {oneLeftToVote && hurryUpSeconds !== null && (
+              <span className="font-mono text-lg font-bold text-imposter tabular-nums">
+                Hurry up! {hurryUpSeconds}s
+              </span>
+            )}
+            <span className="text-innocent text-sm font-medium">
+              {voteCount}/{totalPlayers} voted
+            </span>
+          </div>
         </div>
         <div className="space-y-2 mb-4">
           <p className="text-white/80 text-sm font-medium">Clues given:</p>

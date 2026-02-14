@@ -1,19 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/components/GameProvider';
 import { Chat } from '@/components/Chat';
 
 export function ClueInputScreen() {
   const { state, submitClue, socketId } = useGame();
   const [clue, setClue] = useState('');
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const turnStartRef = useRef(state.currentCluePlayerId);
   const ejectedPlayerIds = state.ejectedPlayerIds ?? [];
   const isEjected = socketId ? ejectedPlayerIds.includes(socketId) : false;
   const me = state.players.find((p) => p.id === socketId);
   const alreadySubmitted = !!me?.clue;
   const isMyTurn = state.currentCluePlayerId === socketId;
-  const timer = state.timers?.clueInput ?? 30;
+  const timerSec = state.timers?.clueInput ?? 30;
   const cluesSoFar = state.roundData?.clues ?? [];
+
+  useEffect(() => {
+    if (state.currentCluePlayerId !== turnStartRef.current) {
+      turnStartRef.current = state.currentCluePlayerId;
+      setSecondsLeft(timerSec);
+    }
+  }, [state.currentCluePlayerId, timerSec]);
+
+  useEffect(() => {
+    if (secondsLeft === null && state.currentCluePlayerId) {
+      setSecondsLeft(timerSec);
+    }
+  }, [state.currentCluePlayerId, timerSec, secondsLeft]);
+
+  useEffect(() => {
+    if (secondsLeft === null || secondsLeft <= 0) return;
+    const t = setInterval(() => setSecondsLeft((s) => (s != null && s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [secondsLeft]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,17 +64,24 @@ export function ClueInputScreen() {
     );
   }
 
+  const displayTime = secondsLeft != null ? secondsLeft : timerSec;
+
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
       <div className="screen-card p-6 animate-slide-up">
         <h2 className="text-xl font-bold mb-2">Clue Phase (turn-based)</h2>
-        <p className="text-white/60 text-sm mb-4">
-          {isMyTurn
-            ? `Your turn! You have ${timer}s to type one word.`
-            : state.currentCluePlayerName
-              ? `Waiting for ${state.currentCluePlayerName}...`
-              : 'Waiting for next player...'}
-        </p>
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <p className="text-white/60 text-sm">
+            {isMyTurn
+              ? 'Your turn! Type one word.'
+              : state.currentCluePlayerName
+                ? `Waiting for ${state.currentCluePlayerName}...`
+                : 'Waiting for next player...'}
+          </p>
+          <span className="font-mono text-2xl font-bold text-innocent tabular-nums min-w-[3ch]">
+            {displayTime}s
+          </span>
+        </div>
         {cluesSoFar.length > 0 && (
           <div className="mb-4 space-y-1">
             <p className="text-white/80 text-xs font-medium">Clues so far:</p>
