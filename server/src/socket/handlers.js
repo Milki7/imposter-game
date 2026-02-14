@@ -69,7 +69,7 @@ function proceedToRoundResults(room, io) {
   advancePhase(room, PHASE.ROUND_RESULTS, 0);
 
   if (room.shouldEndGameFromEjection()) {
-    setTimeout(() => finishRound(room, io), 4000);
+    setTimeout(() => finishRound(room, io), 2000);
     return;
   }
   if (ejectedId && wasImposter) {
@@ -87,9 +87,9 @@ function proceedToRoundResults(room, io) {
         finishRound(room, io);
       }, lastChanceSec);
       setPhaseTimeout(code, lastChanceTimeout);
-    }, 2000);
+    }, 1500);
   } else {
-    setTimeout(() => finishRound(room, io), 5000);
+    setTimeout(() => finishRound(room, io), 2500);
   }
 }
 
@@ -176,13 +176,13 @@ function runGameLoop(room, io) {
   room._io = io;
   const code = room.code;
 
-  advancePhase(room, PHASE.CLUE_INPUT, 5000);
+  advancePhase(room, PHASE.CLUE_INPUT, 3000);
 
   const startCluePhaseTimeout = setTimeout(() => {
     clearPhaseTimeout(code);
     if (room.phase !== PHASE.CLUE_INPUT) return;
     scheduleClueTurnOrDiscussion(room, io);
-  }, 5000);
+  }, 3000);
   setPhaseTimeout(code, startCluePhaseTimeout);
 }
 
@@ -206,11 +206,11 @@ function finishRound(room, io) {
     return;
   }
 
-  // Next round after delay
+  // Next round after short delay
   setTimeout(() => {
     room.startRound();
     runGameLoop(room, io);
-  }, 8000);
+  }, 2500);
 }
 
 /**
@@ -290,7 +290,7 @@ export function registerSocketHandlers(io) {
       io.to(room.code).emit(EVENTS.GAME_STARTED);
       io.to(room.code).emit(EVENTS.PHASE_CHANGED, { phase: PHASE.ROLE_REVEAL, roomCode: room.code });
 
-      setTimeout(() => runGameLoop(room, io), 5000);
+      setTimeout(() => runGameLoop(room, io), 3000);
     });
 
     socket.on(EVENTS.SUBMIT_CLUE, (data) => {
