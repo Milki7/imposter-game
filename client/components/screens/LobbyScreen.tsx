@@ -4,7 +4,7 @@ import { useGame } from '@/components/GameProvider';
 import { Chat } from '@/components/Chat';
 
 export function LobbyScreen() {
-  const { state, startGame, updateSettings, socketId } = useGame();
+  const { state, startGame, updateSettings, leaveRoom, socketId } = useGame();
   const isHost = state.hostId === socketId;
   const canStart = state.players.length >= 3 && state.players.length <= 8;
 
@@ -87,6 +87,9 @@ export function LobbyScreen() {
             Start Game
           </button>
         )}
+        <button onClick={leaveRoom} className="btn-secondary w-full py-3 mt-2">
+          Quit
+        </button>
       </div>
 
       <Chat />

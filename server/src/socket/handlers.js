@@ -67,16 +67,27 @@ function proceedToRoundResults(room, io) {
   const { ejectedId, wasImposter } = room.roundData.voteResults;
   io.to(code).emit(EVENTS.VOTING_ENDED, { ejectedId, wasImposter });
   advancePhase(room, PHASE.ROUND_RESULTS, 0);
+
+  if (room.shouldEndGameFromEjection()) {
+    setTimeout(() => finishRound(room, io), 4000);
+    return;
+  }
   if (ejectedId && wasImposter) {
-    advancePhase(room, PHASE.IMPOSTER_LAST_CHANCE, 2000);
-    const lastChanceTimeout = setTimeout(() => {
-      clearPhaseTimeout(code);
-      finishRound(room, io);
-    }, lastChanceSec);
-    setPhaseTimeout(code, lastChanceTimeout);
-    io.to(ejectedId).emit(EVENTS.IMPOSTER_LAST_CHANCE, {
-      seconds: room.timers?.imposterLastChance ?? 10,
-    });
+    setTimeout(() => {
+      room.phase = PHASE.IMPOSTER_LAST_CHANCE;
+      room.getPlayerList().forEach((p) => {
+        io.to(p.id).emit(EVENTS.GAME_STATE, room.getPublicState(p.id));
+      });
+      io.to(code).emit(EVENTS.PHASE_CHANGED, { phase: PHASE.IMPOSTER_LAST_CHANCE, roomCode: code });
+      io.to(ejectedId).emit(EVENTS.IMPOSTER_LAST_CHANCE, {
+        seconds: room.timers?.imposterLastChance ?? 10,
+      });
+      const lastChanceTimeout = setTimeout(() => {
+        clearPhaseTimeout(code);
+        finishRound(room, io);
+      }, lastChanceSec);
+      setPhaseTimeout(code, lastChanceTimeout);
+    }, 2000);
   } else {
     setTimeout(() => finishRound(room, io), 5000);
   }
@@ -90,7 +101,7 @@ function proceedToRoundResults(room, io) {
 function broadcastVotersAndMaybeHurryUp(room, io) {
   const code = room.code;
   const votedCount = Object.keys(room.roundData?.votes || {}).length;
-  const totalPlayers = room.getPlayerList().length;
+  const totalPlayers = room.getActivePlayerList().length;
   const votedPlayerIds = Object.keys(room.roundData?.votes || {});
 
   io.to(code).emit(EVENTS.VOTERS_UPDATED, { votedPlayerIds });
@@ -185,15 +196,12 @@ function finishRound(room, io) {
   room.getPlayerList().forEach((p) => {
     io.to(p.id).emit(EVENTS.GAME_STATE, room.getPublicState(p.id));
   });
-  io.to(code).emit(EVENTS.ROUND_RESULTS, {
-    leaderboard: room.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score })),
-    roundData: room.roundData,
-  });
+  io.to(code).emit(EVENTS.ROUND_RESULTS, { roundData: room.roundData });
 
   if (room.isGameOver()) {
     room.phase = PHASE.FINAL_LEADERBOARD;
     io.to(code).emit(EVENTS.GAME_OVER);
-    io.to(code).emit(EVENTS.LEADERBOARD, room.getLeaderboard());
+    io.to(code).emit(EVENTS.LEADERBOARD, room.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score })));
     clearPhaseTimeout(code);
     return;
   }
@@ -346,6 +354,35 @@ export function registerSocketHandlers(io) {
       const guess = data?.guess;
       const correct = room.imposterGuessSecretWord(socket.id, guess ?? '');
       socket.emit(EVENTS.IMPOSTER_GUESS_RESULT, { correct });
+    });
+
+    socket.on(EVENTS.LEAVE_ROOM, () => {
+      const room = getRoomByPlayer(socket.id);
+      if (room) {
+        const code = room.code;
+        const player = room.players.get(socket.id);
+        socket.leave(code);
+        leaveRoom(socket.id);
+        socket.emit(EVENTS.ROOM_LEFT);
+        io.to(code).emit(EVENTS.PLAYER_LEFT, {
+          playerId: socket.id,
+          playerName: player?.name,
+        });
+      }
+    });
+
+    socket.on(EVENTS.RESTART_GAME, () => {
+      const room = getRoomByPlayer(socket.id);
+      if (!room) return;
+      const host = room.getHost();
+      if (host?.id !== socket.id) return;
+      clearPhaseTimeout(room.code);
+      room.resetToLobby();
+      room.getPlayerList().forEach((p) => {
+        io.to(p.id).emit(EVENTS.GAME_STATE, room.getPublicState(p.id));
+      });
+      io.to(room.code).emit(EVENTS.GAME_RESTARTED);
+      io.to(room.code).emit(EVENTS.PHASE_CHANGED, { phase: PHASE.LOBBY, roomCode: room.code });
     });
 
     socket.on(EVENTS.DISCONNECT, () => {

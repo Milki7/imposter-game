@@ -7,6 +7,8 @@ import { Chat } from '@/components/Chat';
 export function ClueInputScreen() {
   const { state, submitClue, socketId } = useGame();
   const [clue, setClue] = useState('');
+  const ejectedPlayerIds = state.ejectedPlayerIds ?? [];
+  const isEjected = socketId ? ejectedPlayerIds.includes(socketId) : false;
   const me = state.players.find((p) => p.id === socketId);
   const alreadySubmitted = !!me?.clue;
   const isMyTurn = state.currentCluePlayerId === socketId;
@@ -19,6 +21,27 @@ export function ClueInputScreen() {
       submitClue(clue.trim());
     }
   };
+
+  if (isEjected) {
+    return (
+      <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
+        <div className="screen-card p-6 animate-slide-up text-center">
+          <h2 className="text-xl font-bold mb-2">You were ejected</h2>
+          <p className="text-white/60 mb-4">You can only watch. Clues will appear below.</p>
+          {cluesSoFar.length > 0 && (
+            <div className="text-left space-y-1">
+              {cluesSoFar.map((c) => (
+                <div key={c.playerId} className="text-sm text-white/70">
+                  {c.name}: <span className="text-white">{c.clue}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <Chat />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">

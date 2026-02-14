@@ -56,6 +56,7 @@ export interface GameState {
   chatHistory: { playerId: string; name: string; message: string; timestamp: number }[];
   timers?: { clueInput?: number; discussion?: number; voting?: number };
   leaderboard?: { id: string; name: string; score: number }[];
+  ejectedPlayerIds?: string[];
 }
 
 interface GameContextValue {
@@ -69,6 +70,8 @@ interface GameContextValue {
   submitVote: (targetId: string) => void;
   imposterGuess: (guess: string) => void;
   updateSettings: (settings: Partial<GameState['timers'] & { totalRounds?: number }>) => void;
+  leaveRoom: () => void;
+  restartGame: () => void;
   inRoom: boolean;
   error: string | null;
   clearError: () => void;
@@ -179,6 +182,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({ ...s, leaderboard, phase: 'final_leaderboard' }));
     });
 
+    socket.on(EVENTS.ROOM_LEFT, () => {
+      setState(initialState);
+      setInRoom(false);
+      setImposterGuessResult(null);
+    });
+
+    socket.on(EVENTS.GAME_RESTARTED, () => {});
+
     socket.on(EVENTS.IMPOSTER_GUESS_RESULT, (data: { correct?: boolean }) => {
       setImposterGuessResult(data?.correct ?? false);
     });
@@ -200,6 +211,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off(EVENTS.ROUND_RESULTS);
       socket.off(EVENTS.GAME_OVER);
       socket.off(EVENTS.LEADERBOARD);
+      socket.off(EVENTS.ROOM_LEFT);
+      socket.off(EVENTS.GAME_RESTARTED);
       socket.off(EVENTS.IMPOSTER_GUESS_RESULT);
     };
   }, [socket]);
@@ -257,6 +270,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [socket]
   );
 
+  const leaveRoom = useCallback(() => {
+    socket.emit(EVENTS.LEAVE_ROOM);
+  }, [socket]);
+
+  const restartGame = useCallback(() => {
+    socket.emit(EVENTS.RESTART_GAME);
+  }, [socket]);
+
   const clearError = useCallback(() => setError(null), []);
 
   const value: GameContextValue = {
@@ -270,6 +291,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     submitVote,
     imposterGuess,
     updateSettings,
+    leaveRoom,
+    restartGame,
     inRoom,
     error,
     clearError,

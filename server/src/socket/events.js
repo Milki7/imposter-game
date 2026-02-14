@@ -13,6 +13,10 @@ export const EVENTS = {
   ROOM_ERROR: 'room:error',
   PLAYER_JOINED: 'room:player_joined',
   PLAYER_LEFT: 'room:player_left',
+  LEAVE_ROOM: 'room:leave',
+  ROOM_LEFT: 'room:left',
+  RESTART_GAME: 'game:restart',
+  GAME_RESTARTED: 'game:restarted',
   UPDATE_SETTINGS: 'room:update_settings',
   SETTINGS_UPDATED: 'room:settings_updated',
 

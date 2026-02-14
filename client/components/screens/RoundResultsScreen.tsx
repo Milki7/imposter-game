@@ -5,8 +5,8 @@ import { useGame } from '@/components/GameProvider';
 export function RoundResultsScreen() {
   const { state } = useGame();
   const results = state.roundData?.voteResults;
-  const leaderboard = state.leaderboard ?? [];
-  const isGameOver = state.currentRound !== undefined && state.totalRounds !== undefined && state.currentRound >= state.totalRounds;
+  const activeCount = state.players?.length - (state.ejectedPlayerIds?.length ?? 0);
+  const isGameOver = state.phase === 'final_leaderboard' || activeCount < 3;
 
   return (
     <div className="w-full max-w-lg mx-auto screen-card p-6 animate-slide-up">
@@ -24,19 +24,13 @@ export function RoundResultsScreen() {
           </p>
         </div>
       ) : null}
-      <div className="mb-4">
-        <p className="text-white/80 text-sm font-medium mb-2">Leaderboard</p>
-        <ol className="space-y-1">
-          {leaderboard.map((p, i) => (
-            <li key={p.id} className="flex justify-between">
-              <span>{i + 1}. {p.name}</span>
-              <span>{p.score} pts</span>
-            </li>
-          ))}
-        </ol>
-      </div>
+      {activeCount < 3 && (
+        <p className="text-white/60 text-sm mb-4">Not enough players to continue. Game over!</p>
+      )}
       {isGameOver ? (
         <p className="text-white/60 text-sm">Game over! Final leaderboard next.</p>
+      ) : results?.wasImposter ? (
+        <p className="text-white/60 text-sm">Last Chance: ejected Imposter can guess the word for +150 pts...</p>
       ) : (
         <p className="text-white/60 text-sm">Next round starting...</p>
       )}

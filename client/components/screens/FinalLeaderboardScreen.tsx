@@ -3,9 +3,10 @@
 import { useGame } from '@/components/GameProvider';
 
 export function FinalLeaderboardScreen() {
-  const { state } = useGame();
+  const { state, restartGame, leaveRoom, socketId } = useGame();
   const leaderboard = state.leaderboard ?? [];
   const winner = leaderboard[0];
+  const isHost = state.hostId === socketId;
 
   return (
     <div className="w-full max-w-lg mx-auto screen-card p-8 animate-slide-up">
@@ -30,7 +31,17 @@ export function FinalLeaderboardScreen() {
           </li>
         ))}
       </ol>
-      <p className="text-white/40 text-sm text-center mt-6">Thanks for playing!</p>
+      <div className="mt-6 pt-6 border-t border-white/10 flex flex-col gap-3">
+        {isHost && (
+          <button onClick={restartGame} className="btn-primary w-full py-3">
+            Restart Game
+          </button>
+        )}
+        <button onClick={leaveRoom} className="btn-secondary w-full py-3">
+          Quit
+        </button>
+      </div>
+      <p className="text-white/40 text-sm text-center mt-4">Thanks for playing!</p>
     </div>
   );
 }

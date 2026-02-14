@@ -54,6 +54,9 @@ export class Room {
   /** @type {Set<number>} */
   usedRoundIndices = new Set();
 
+  /** @type {Set<string>} Player IDs ejected this game (can't play anymore) */
+  ejectedPlayerIds = new Set();
+
   constructor() {
     this.code = generateRoomCode();
   }
@@ -63,9 +66,20 @@ export class Room {
     return this.players.size;
   }
 
+  /** @returns {Player[]} Players not ejected (still in the game) */
+  getActivePlayerList() {
+    return this.getPlayerList().filter((p) => !this.ejectedPlayerIds.has(p.id));
+  }
+
+  /** @returns {number} */
+  get activeCount() {
+    return this.getActivePlayerList().length;
+  }
+
   /** @returns {number} */
   get imposterCount() {
-    return this.playerCount <= 5 ? 1 : 2;
+    const n = this.activeCount;
+    return n <= 5 ? 1 : 2;
   }
 
   /** @returns {Player[]} */
@@ -76,6 +90,26 @@ export class Room {
   /** @returns {Player|null} */
   getHost() {
     return this.hostId ? this.players.get(this.hostId) ?? null : null;
+  }
+
+  /** Reset to lobby for a new game (keeps players, host, settings, chat). */
+  resetToLobby() {
+    this.phase = PHASE.LOBBY;
+    this.currentRound = 0;
+    this.roundData = null;
+    this.clueTurnOrder = [];
+    this.clueTurnIndex = 0;
+    this.usedRoundIndices = new Set();
+    this.ejectedPlayerIds = new Set();
+    for (const p of this.players.values()) {
+      p.role = 'innocent';
+      p.score = 0;
+      p.secretWord = undefined;
+      p.theme = undefined;
+      p.clue = undefined;
+      p.voteTargetId = undefined;
+      p.voteCount = 0;
+    }
   }
 
   /**
@@ -109,9 +143,10 @@ export class Room {
     }
   }
 
-  /** Assign roles and pick round word */
+  /** Assign roles and pick round word (only active players) */
   assignRoles() {
-    const list = this.getPlayerList();
+    const list = this.getActivePlayerList();
+    if (list.length < 2) return;
     const impCount = this.imposterCount;
 
     // Pick a fresh round word
@@ -148,7 +183,7 @@ export class Room {
     this.clueTurnIndex = 0;
   }
 
-  /** Reset per-round fields */
+  /** Reset per-round fields (all players) */
   resetRoundFields() {
     for (const p of this.players.values()) {
       p.clue = undefined;
@@ -177,6 +212,7 @@ export class Room {
    * @param {string} clue
    */
   submitClue(playerId, clue) {
+    if (this.ejectedPlayerIds.has(playerId)) return false;
     const currentId = this.clueTurnOrder[this.clueTurnIndex];
     if (currentId !== playerId) return false;
     const player = this.players.get(playerId);
@@ -221,34 +257,37 @@ export class Room {
    * @param {string} targetId - Player ID or VOTE_SKIP
    */
   submitVote(voterId, targetId) {
+    if (this.ejectedPlayerIds.has(voterId)) return false;
     if (targetId === VOTE_SKIP) {
       this.roundData.votes[voterId] = VOTE_SKIP;
       return true;
     }
     if (!this.players.has(targetId) || voterId === targetId) return false;
+    if (this.ejectedPlayerIds.has(targetId)) return false;
     this.roundData.votes[voterId] = targetId;
     return true;
   }
 
   /** @returns {boolean} */
   allVotesIn() {
-    const list = this.getPlayerList();
-    return list.every((p) => p.id in this.roundData.votes);
+    const list = this.getActivePlayerList();
+    return list.length > 0 && list.every((p) => p.id in this.roundData.votes);
   }
 
-  /** Compute vote counts and ejected player */
+  /** Compute vote counts and ejected player (only active players can receive votes) */
   tallyVotes() {
     const votes = this.roundData.votes;
     let skipVotes = 0;
+    const activeList = this.getActivePlayerList();
     for (const id of Object.values(votes)) {
       if (id === VOTE_SKIP) {
         skipVotes++;
       } else {
         const p = this.players.get(id);
-        if (p) p.voteCount++;
+        if (p && !this.ejectedPlayerIds.has(id)) p.voteCount++;
       }
     }
-    const list = this.getPlayerList();
+    const list = activeList;
     const maxPlayerVotes = Math.max(...list.map((p) => p.voteCount), 0);
     const maxVotes = Math.max(maxPlayerVotes, skipVotes);
     const ejected = list.filter((p) => p.voteCount === maxVotes);
@@ -256,14 +295,21 @@ export class Room {
     const skipWins = skipVotes === maxVotes;
     const skipTies = skipVotes > 0 && skipVotes === maxPlayerVotes && ejected.length > 0;
     const skipped = skipWins || skipTies;
+    const ejectedId = skipped ? null : singleEjected?.id ?? null;
     this.roundData.voteResults = {
-      ejectedId: skipped ? null : singleEjected?.id ?? null,
+      ejectedId,
       ejectedName: skipped ? null : singleEjected?.name ?? null,
       wasImposter: skipped ? false : singleEjected?.role === 'imposter',
       maxVotes,
       skipVotes,
       skipped,
     };
+    if (ejectedId) this.ejectedPlayerIds.add(ejectedId);
+  }
+
+  /** True if game should end because too few active players remain */
+  shouldEndGameFromEjection() {
+    return this.activeCount < 3;
   }
 
   /** Award points for this round */
@@ -305,7 +351,7 @@ export class Room {
 
   /** @returns {boolean} */
   isGameOver() {
-    return this.currentRound >= this.totalRounds;
+    return this.currentRound >= this.totalRounds || this.activeCount < 3;
   }
 
   /** @returns {Player[]} Sorted by score descending */
@@ -344,9 +390,10 @@ export class Room {
       timers: this.timers,
       currentCluePlayerId: clueTurn.currentCluePlayerId ?? undefined,
       currentCluePlayerName: clueTurn.currentCluePlayerName ?? undefined,
-      leaderboard: (this.phase === PHASE.FINAL_LEADERBOARD || this.phase === PHASE.ROUND_RESULTS)
+      leaderboard: this.phase === PHASE.FINAL_LEADERBOARD
         ? this.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score }))
         : undefined,
+      ejectedPlayerIds: Array.from(this.ejectedPlayerIds),
     };
   }
 

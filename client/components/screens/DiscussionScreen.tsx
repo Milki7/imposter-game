@@ -10,11 +10,14 @@ export function DiscussionScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hasVotedOptimistic, setHasVotedOptimistic] = useState(false);
   const clues = state.roundData?.clues ?? [];
-  const others = state.players.filter((p) => p.id !== socketId);
   const votedPlayerIds = state.roundData?.votedPlayerIds ?? [];
+  const ejectedPlayerIds = state.ejectedPlayerIds ?? [];
+  const isEjected = socketId ? ejectedPlayerIds.includes(socketId) : false;
+  const activePlayers = state.players.filter((p) => !ejectedPlayerIds.includes(p.id));
   const hasVoted = hasVotedOptimistic || (socketId ? votedPlayerIds.includes(socketId) : false);
   const voteCount = votedPlayerIds.length;
-  const totalPlayers = state.players.length;
+  const totalPlayers = activePlayers.length;
+  const others = activePlayers.filter((p) => p.id !== socketId);
 
   const handleVote = () => {
     if (selectedId && !hasVoted) {
@@ -25,6 +28,26 @@ export function DiscussionScreen() {
 
   const selectedStyle = 'border-innocent border-2 bg-innocent/20 ring-2 ring-innocent/50';
   const unselectedStyle = 'border-white/20 bg-white/5 hover:bg-white/10';
+
+  if (isEjected) {
+    return (
+      <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
+        <div className="screen-card p-6 animate-slide-up text-center">
+          <h2 className="text-xl font-bold mb-2">You were ejected</h2>
+          <p className="text-white/60 mb-4">You can only watch. Chat is still available.</p>
+          <div className="space-y-2 mb-4 text-left">
+            <p className="text-white/80 text-sm font-medium">Clues this round:</p>
+            {clues.map((c) => (
+              <div key={c.playerId} className="p-2 rounded-lg bg-white/5 text-sm">
+                <span className="text-white/60">{c.name}:</span> <span className="text-white">{c.clue}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Chat />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">

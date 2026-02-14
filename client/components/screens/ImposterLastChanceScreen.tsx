@@ -1,14 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGame } from '@/components/GameProvider';
 
 export function ImposterLastChanceScreen() {
   const { state, imposterGuess, socketId, imposterGuessResult } = useGame();
   const [guess, setGuess] = useState('');
+  const lastChanceSec = state.timers?.imposterLastChance ?? 10;
+  const [secondsLeft, setSecondsLeft] = useState(lastChanceSec);
   const ejectedId = state.roundData?.voteResults?.ejectedId;
   const isEjectedImposter = socketId === ejectedId;
   const theme = state.roundData?.theme ?? '?';
+
+  useEffect(() => {
+    if (!isEjectedImposter) return;
+    setSecondsLeft(lastChanceSec);
+    const interval = setInterval(() => {
+      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isEjectedImposter, lastChanceSec]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +32,7 @@ export function ImposterLastChanceScreen() {
     return (
       <div className="w-full max-w-md mx-auto screen-card p-8 animate-slide-up text-center">
         <h2 className="text-xl font-bold mb-2">Last Chance</h2>
-        <p className="text-white/80">The ejected Imposter is guessing the Secret Word...</p>
+        <p className="text-white/80">The ejected Imposter has {lastChanceSec}s to guess the Secret Word for +150 pts.</p>
       </div>
     );
   }
@@ -29,6 +40,7 @@ export function ImposterLastChanceScreen() {
   return (
     <div className="w-full max-w-md mx-auto screen-card p-8 animate-slide-up text-center">
       <h2 className="text-xl font-bold mb-2">Last Chance!</h2>
+      <p className="text-imposter font-mono text-2xl mb-2">{secondsLeft}s</p>
       <p className="text-white/80 mb-4">
         Guess the Secret Word for +150 points. Theme: <span className="font-semibold">{theme}</span>
       </p>
