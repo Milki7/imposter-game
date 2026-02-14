@@ -122,15 +122,25 @@ function broadcastVotersAndMaybeHurryUp(room, io) {
 }
 
 /**
- * Start debate phase: no fixed wait. Auto-advance when all vote.
- * When 1 player left to vote, 10s hurry-up. Long fallback for edge cases.
+ * Start debate phase: discussion timer then vote emphasis.
+ * When discussion timer hits zero, emit DISCUSSION_TIME_UP (chat freezes, show VOTE NOW).
+ * Auto-advance when all vote; 10s hurry-up when 1 left; long fallback.
  */
 function startDiscussionFlow(room, io) {
   const code = room.code;
+  const discussionSec = (room.timers?.discussion ?? 120) * 1000;
 
   advancePhase(room, PHASE.DISCUSSION, 0);
+
+  const discussionEndTimeout = setTimeout(() => {
+    io.to(code).emit(EVENTS.DISCUSSION_TIME_UP);
+  }, discussionSec);
+
   const fallbackTimeout = setTimeout(() => {
-    clearPhaseTimeout(code);
+    clearTimeout(discussionEndTimeout);
+    const t = phaseTimeouts.get(code);
+    if (t) clearTimeout(t);
+    phaseTimeouts.delete(code);
     if (room.phase !== PHASE.DISCUSSION) return;
     room.tallyVotes();
     room.awardPoints();

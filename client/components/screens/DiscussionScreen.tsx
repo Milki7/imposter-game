@@ -23,6 +23,10 @@ export function DiscussionScreen() {
   const totalPlayers = activePlayers.length;
   const others = activePlayers.filter((p) => p.id !== socketId);
   const oneLeftToVote = totalPlayers > 1 && voteCount === totalPlayers - 1;
+  const discussionTimeUp = state.discussionTimeUp ?? false;
+  const discussionSec = state.timers?.discussion ?? 120;
+  const [discussionSecondsLeft, setDiscussionSecondsLeft] = useState<number | null>(null);
+  const discussionTimerStarted = useRef(false);
 
   useEffect(() => {
     if (oneLeftToVote && !hurryUpStarted.current) {
@@ -40,6 +44,23 @@ export function DiscussionScreen() {
     const t = setInterval(() => setHurryUpSeconds((s) => (s != null && s > 0 ? s - 1 : 0)), 1000);
     return () => clearInterval(t);
   }, [hurryUpSeconds]);
+
+  useEffect(() => {
+    if (state.phase !== 'discussion') {
+      discussionTimerStarted.current = false;
+      return;
+    }
+    if (discussionTimerStarted.current) return;
+    discussionTimerStarted.current = true;
+    setDiscussionSecondsLeft(discussionSec);
+  }, [state.phase, discussionSec]);
+
+  useEffect(() => {
+    if (discussionTimeUp || discussionSecondsLeft === null) return;
+    if (discussionSecondsLeft <= 0) return;
+    const t = setInterval(() => setDiscussionSecondsLeft((s) => (s != null && s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [discussionSecondsLeft, discussionTimeUp]);
 
   const handleVote = () => {
     if (selectedId && !hasVoted) {
@@ -66,49 +87,58 @@ export function DiscussionScreen() {
             ))}
           </div>
         </div>
-        <Chat />
+        <Chat frozen={discussionTimeUp} />
       </div>
     );
   }
 
+  const displayDiscussionTime = discussionTimeUp ? 0 : (discussionSecondsLeft ?? discussionSec);
+
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
-      <div className="screen-card p-6 animate-slide-up">
-        <h2 className="text-xl font-bold mb-2">Debate & Vote</h2>
-        <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
-          <p className="text-white/60 text-sm">
-            All votes in? Results show immediately.
-          </p>
-          <div className="flex items-center gap-3">
-            {oneLeftToVote && hurryUpSeconds !== null && (
-              <span className="font-mono text-lg font-bold text-imposter tabular-nums">
-                Hurry up! {hurryUpSeconds}s
-              </span>
-            )}
-            <span className="text-innocent text-sm font-medium">
-              {voteCount}/{totalPlayers} voted
-            </span>
-          </div>
-        </div>
-        <div className="space-y-2 mb-4">
-          <p className="text-white/80 text-sm font-medium">Clues given:</p>
+      {/* All clues on one screen */}
+      <div className="screen-card p-4 animate-slide-up">
+        <h2 className="text-lg font-bold mb-3">Everyone&apos;s clues</h2>
+        <div className="grid grid-cols-1 gap-2">
           {clues.map((c) => (
-            <div key={c.playerId} className="p-2 rounded-lg bg-white/5 text-sm">
-              <span className="text-white/60">{c.name}:</span>{' '}
-              <span className="text-white">{c.clue}</span>
+            <div key={c.playerId} className="p-3 rounded-xl bg-white/5 border border-white/10 text-sm flex justify-between items-center gap-2">
+              <span className="text-white/70 font-medium">{c.name}</span>
+              <span className="text-white font-semibold">{c.clue}</span>
             </div>
           ))}
         </div>
-        <div className="space-y-2 mb-4 pt-4 border-t border-white/10">
-          <p className="text-white/80 text-sm font-medium">Vote for the Imposter:</p>
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
+          <span className="text-white/60 text-sm">
+            {discussionTimeUp ? 'Discussion over — vote now!' : `${displayDiscussionTime}s to discuss`}
+          </span>
+          <span className="text-innocent text-sm font-medium">{voteCount}/{totalPlayers} voted</span>
+        </div>
+        {oneLeftToVote && hurryUpSeconds !== null && (
+          <p className="text-imposter font-mono text-sm font-bold mt-2">Hurry up! {hurryUpSeconds}s</p>
+        )}
+      </div>
+
+      {/* Big VOTE NOW when discussion timer hit zero */}
+      {discussionTimeUp && (
+        <div className="text-center py-2">
+          <h2 className="text-2xl font-black text-imposter uppercase tracking-wider">Vote now</h2>
+        </div>
+      )}
+
+      {/* Vote section - bigger buttons when discussionTimeUp */}
+      <div className={`screen-card p-6 animate-slide-up ${discussionTimeUp ? 'ring-2 ring-imposter' : ''}`}>
+        <p className="text-white/80 text-sm font-medium mb-3">
+          {discussionTimeUp ? 'Pick who to eject:' : 'Vote for the Imposter:'}
+        </p>
+        <div className={`space-y-2 ${discussionTimeUp ? 'space-y-3' : ''}`}>
           {others.map((p) => (
             <button
               key={p.id}
               onClick={() => !hasVoted && setSelectedId(p.id)}
               disabled={hasVoted}
-              className={`w-full p-3 rounded-xl text-left border-2 transition-all flex items-center gap-2 ${
-                hasVoted ? 'opacity-70 cursor-not-allowed' : ''
-              } ${selectedId === p.id ? selectedStyle : unselectedStyle}`}
+              className={`w-full rounded-xl text-left border-2 transition-all flex items-center gap-2 ${
+                discussionTimeUp ? 'p-4 text-lg' : 'p-3'
+              } ${hasVoted ? 'opacity-70 cursor-not-allowed' : ''} ${selectedId === p.id ? selectedStyle : unselectedStyle}`}
             >
               <span
                 className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
@@ -120,13 +150,13 @@ export function DiscussionScreen() {
             </button>
           ))}
         </div>
-        <div className="mb-4">
+        <div className={discussionTimeUp ? 'mt-4' : 'mt-4'}>
           <button
             onClick={() => !hasVoted && setSelectedId(VOTE_SKIP)}
             disabled={hasVoted}
-            className={`w-full p-3 rounded-xl text-center border-2 transition-all ${
-              hasVoted ? 'opacity-70 cursor-not-allowed' : ''
-            } ${selectedId === VOTE_SKIP ? selectedStyle : unselectedStyle}`}
+            className={`w-full rounded-xl text-center border-2 transition-all ${
+              discussionTimeUp ? 'p-4 text-lg' : 'p-3'
+            } ${hasVoted ? 'opacity-70 cursor-not-allowed' : ''} ${selectedId === VOTE_SKIP ? selectedStyle : unselectedStyle}`}
           >
             Skip Vote
           </button>
@@ -137,13 +167,14 @@ export function DiscussionScreen() {
           <button
             onClick={handleVote}
             disabled={!selectedId}
-            className="btn-primary w-full py-4 disabled:opacity-50"
+            className={`btn-primary w-full disabled:opacity-50 mt-4 ${discussionTimeUp ? 'py-5 text-xl' : 'py-4'}`}
           >
             Submit Vote
           </button>
         )}
       </div>
-      <Chat />
+
+      <Chat frozen={discussionTimeUp} />
     </div>
   );
 }

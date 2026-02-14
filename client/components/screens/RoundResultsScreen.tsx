@@ -17,9 +17,10 @@ export function RoundResultsScreen() {
           <p className="text-white/60 text-sm">{results.skipVotes ?? 0} vote(s) to skip</p>
         </div>
       ) : results?.ejectedId ? (
-        <div className={`p-4 rounded-xl mb-4 ${results.wasImposter ? 'bg-imposter/20 border border-imposter' : 'bg-white/10'}`}>
-          <p className="font-semibold">{results.ejectedName} was ejected.</p>
-          <p className={results.wasImposter ? 'text-imposter' : 'text-white/80'}>
+        <div className={`p-5 rounded-xl mb-4 ring-2 ring-imposter/80 ${results.wasImposter ? 'bg-imposter/25 border-2 border-imposter' : 'bg-white/15 border-2 border-white/30'}`}>
+          <p className="text-imposter font-bold text-sm uppercase tracking-wider mb-1">Most votes — Ejected</p>
+          <p className="font-bold text-lg">{results.ejectedName} was ejected.</p>
+          <p className={results.wasImposter ? 'text-imposter font-medium' : 'text-white/80'}>
             {results.wasImposter ? 'They were the Imposter!' : 'They were Innocent.'}
           </p>
         </div>

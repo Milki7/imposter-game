@@ -3,7 +3,11 @@
 import { useRef, useEffect, useState } from 'react';
 import { useGame } from '@/components/GameProvider';
 
-export function Chat() {
+interface ChatProps {
+  frozen?: boolean;
+}
+
+export function Chat({ frozen = false }: ChatProps) {
   const { state, sendChatMessage } = useGame();
   const [input, setInput] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
@@ -14,7 +18,7 @@ export function Chat() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim()) {
+    if (!frozen && input.trim()) {
       sendChatMessage(input.trim());
       setInput('');
     }
@@ -22,8 +26,11 @@ export function Chat() {
 
   return (
     <div className="screen-card flex flex-col flex-1 min-h-[200px] max-h-[280px]">
-      <div className="p-3 border-b border-white/10">
+      <div className="p-3 border-b border-white/10 flex items-center justify-between">
         <p className="text-sm font-medium">Chat</p>
+        {frozen && (
+          <span className="text-imposter text-xs font-semibold">Frozen — vote now!</span>
+        )}
       </div>
       <div
         ref={listRef}
@@ -40,19 +47,25 @@ export function Chat() {
           ))
         )}
       </div>
-      <form onSubmit={handleSubmit} className="p-3 border-t border-white/10 flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value.slice(0, 200))}
-          placeholder="Type a message..."
-          maxLength={200}
-          className="input-field flex-1 py-2 text-sm"
-        />
-        <button type="submit" className="btn-primary py-2 px-4 text-sm" disabled={!input.trim()}>
-          Send
-        </button>
-      </form>
+      {frozen ? (
+        <div className="p-3 border-t border-white/10 text-center text-white/50 text-sm">
+          Chat closed. Submit your vote below.
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="p-3 border-t border-white/10 flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value.slice(0, 200))}
+            placeholder="Type a message..."
+            maxLength={200}
+            className="input-field flex-1 py-2 text-sm"
+          />
+          <button type="submit" className="btn-primary py-2 px-4 text-sm" disabled={!input.trim()}>
+            Send
+          </button>
+        </form>
+      )}
     </div>
   );
 }

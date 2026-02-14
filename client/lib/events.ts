@@ -24,6 +24,7 @@ export const EVENTS = {
   ALL_CLUES_IN: 'game:all_clues_in',
   CHAT_MESSAGE: 'chat:message',
   CHAT_HISTORY: 'chat:history',
+  DISCUSSION_TIME_UP: 'game:discussion_time_up',
   SUBMIT_VOTE: 'game:submit_vote',
   VOTE_SUBMITTED: 'game:vote_submitted',
   VOTERS_UPDATED: 'game:voters_updated',

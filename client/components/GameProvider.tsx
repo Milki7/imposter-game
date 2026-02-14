@@ -57,6 +57,7 @@ export interface GameState {
   timers?: { clueInput?: number; discussion?: number; voting?: number };
   leaderboard?: { id: string; name: string; score: number }[];
   ejectedPlayerIds?: string[];
+  discussionTimeUp?: boolean;
 }
 
 interface GameContextValue {
@@ -139,10 +140,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     socket.on(EVENTS.GAME_STARTED, () => {});
 
     socket.on(EVENTS.PHASE_CHANGED, (data: { phase: Phase }) => {
-      setState((s) => ({ ...s, phase: data.phase }));
+      setState((s) => ({ ...s, phase: data.phase, discussionTimeUp: false }));
       if (data.phase === 'imposter_last_chance') {
         setImposterGuessResult(null);
       }
+    });
+
+    socket.on(EVENTS.DISCUSSION_TIME_UP, () => {
+      setState((s) => (s.phase === 'discussion' ? { ...s, discussionTimeUp: true } : s));
     });
 
     socket.on(EVENTS.GAME_STATE, (newState: GameState) => {
@@ -205,6 +210,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off(EVENTS.SETTINGS_UPDATED);
       socket.off(EVENTS.GAME_STARTED);
       socket.off(EVENTS.PHASE_CHANGED);
+      socket.off(EVENTS.DISCUSSION_TIME_UP);
       socket.off(EVENTS.GAME_STATE);
       socket.off(EVENTS.VOTERS_UPDATED);
       socket.off(EVENTS.CHAT_MESSAGE);

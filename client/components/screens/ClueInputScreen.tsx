@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/components/GameProvider';
-import { Chat } from '@/components/Chat';
 
 export function ClueInputScreen() {
   const { state, submitClue, socketId } = useGame();
@@ -59,7 +58,6 @@ export function ClueInputScreen() {
             </div>
           )}
         </div>
-        <Chat />
       </div>
     );
   }
@@ -113,7 +111,6 @@ export function ClueInputScreen() {
           <p className="text-white/40 py-4">Wait for your turn</p>
         )}
       </div>
-      <Chat />
     </div>
   );
 }
