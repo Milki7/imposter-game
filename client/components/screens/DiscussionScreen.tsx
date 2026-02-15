@@ -8,19 +8,23 @@ import { VOTE_SKIP, DISCUSSION_PANIC_THRESHOLD } from '@/lib/constants';
 const HURRY_UP_SECONDS = 10;
 
 export function DiscussionScreen() {
-  const { state, submitVote, socketId } = useGame();
+  const { state, submitVote, submitDiscussionReady, socketId } = useGame();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hasVotedOptimistic, setHasVotedOptimistic] = useState(false);
   const [hurryUpSeconds, setHurryUpSeconds] = useState<number | null>(null);
   const hurryUpStarted = useRef(false);
   const clues = state.roundData?.clues ?? [];
   const votedPlayerIds = state.roundData?.votedPlayerIds ?? [];
+  const readyPlayerIds = state.roundData?.readyPlayerIds ?? [];
   const ejectedPlayerIds = state.ejectedPlayerIds ?? [];
   const isEjected = socketId ? ejectedPlayerIds.includes(socketId) : false;
   const activePlayers = state.players.filter((p) => !ejectedPlayerIds.includes(p.id));
+  const totalPlayers = activePlayers.length;
   const hasVoted = hasVotedOptimistic || (socketId ? votedPlayerIds.includes(socketId) : false);
   const voteCount = votedPlayerIds.length;
-  const totalPlayers = activePlayers.length;
+  const isReady = socketId ? readyPlayerIds.includes(socketId) : false;
+  const readyCount = readyPlayerIds.length;
+  const requiredReady = totalPlayers > 0 ? Math.floor(totalPlayers / 2) + 1 : 1;
   const others = activePlayers.filter((p) => p.id !== socketId);
   const oneLeftToVote = totalPlayers > 1 && voteCount === totalPlayers - 1;
   const discussionTimeUp = state.discussionTimeUp ?? false;
@@ -142,7 +146,7 @@ export function DiscussionScreen() {
             </div>
           ))}
         </div>
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10 flex-wrap gap-2">
           <span
             className={`text-sm font-mono font-bold tabular-nums ${
               panicMode ? 'text-red-400 animate-pulse' : 'text-white/60'
@@ -150,71 +154,86 @@ export function DiscussionScreen() {
           >
             {discussionTimeUp ? 'Discussion over — vote now!' : `${displaySecondsRemaining}s to discuss`}
           </span>
-          <span className="text-innocent text-sm font-medium">{voteCount}/{totalPlayers} voted</span>
+          {!discussionTimeUp && (
+            <span className="text-white/60 text-sm">{readyCount}/{totalPlayers} ready to vote</span>
+          )}
+          {discussionTimeUp && (
+            <span className="text-innocent text-sm font-medium">{voteCount}/{totalPlayers} voted</span>
+          )}
         </div>
+        {!discussionTimeUp && (
+          <button
+            type="button"
+            onClick={submitDiscussionReady}
+            disabled={isReady}
+            className={`mt-3 w-full py-3 rounded-xl font-semibold border-2 transition-all ${
+              isReady ? 'bg-innocent/20 border-innocent text-innocent cursor-default' : 'btn-primary border-transparent'
+            }`}
+          >
+            {isReady ? 'Ready — waiting for others' : `Ready to vote (${readyCount}/${requiredReady} to skip)`}
+          </button>
+        )}
         {panicMode && (
           <p className="text-red-400 font-bold text-sm mt-2 uppercase tracking-wider">Last 10 seconds — panic mode!</p>
         )}
-        {oneLeftToVote && hurryUpSeconds !== null && (
+        {oneLeftToVote && hurryUpSeconds !== null && discussionTimeUp && (
           <p className="text-imposter font-mono text-sm font-bold mt-2">Hurry up! {hurryUpSeconds}s</p>
         )}
       </div>
 
-      {/* Big VOTE NOW when discussion timer hit zero */}
+      {/* Vote section and VOTE NOW only after discussion time is up */}
       {discussionTimeUp && (
-        <div className="text-center py-2">
-          <h2 className="text-2xl font-black text-imposter uppercase tracking-wider">Vote now</h2>
-        </div>
+        <>
+          <div className="text-center py-2">
+            <h2 className="text-2xl font-black text-imposter uppercase tracking-wider">Vote now</h2>
+          </div>
+          <div className="screen-card p-6 animate-slide-up ring-2 ring-imposter">
+            <p className="text-white/80 text-sm font-medium mb-3">Pick who to eject:</p>
+            <div className="space-y-3">
+              {others.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => !hasVoted && setSelectedId(p.id)}
+                  disabled={hasVoted}
+                  className={`w-full p-4 text-lg rounded-xl text-left border-2 transition-all flex items-center gap-2 ${
+                    hasVoted ? 'opacity-70 cursor-not-allowed' : ''
+                  } ${selectedId === p.id ? selectedStyle : unselectedStyle}`}
+                >
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                      votedPlayerIds.includes(p.id) ? 'bg-innocent' : 'bg-white/30'
+                    }`}
+                    title={votedPlayerIds.includes(p.id) ? 'Voted' : 'Waiting'}
+                  />
+                  {p.name}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4">
+              <button
+                onClick={() => !hasVoted && setSelectedId(VOTE_SKIP)}
+                disabled={hasVoted}
+                className={`w-full p-4 text-lg rounded-xl text-center border-2 transition-all ${
+                  hasVoted ? 'opacity-70 cursor-not-allowed' : ''
+                } ${selectedId === VOTE_SKIP ? selectedStyle : unselectedStyle}`}
+              >
+                Skip Vote
+              </button>
+            </div>
+            {hasVoted ? (
+              <p className="text-innocent font-medium py-3 text-center">Vote submitted</p>
+            ) : (
+              <button
+                onClick={handleVote}
+                disabled={!selectedId}
+                className="btn-primary w-full py-5 text-xl disabled:opacity-50 mt-4"
+              >
+                Submit Vote
+              </button>
+            )}
+          </div>
+        </>
       )}
-
-      {/* Vote section - bigger buttons when discussionTimeUp */}
-      <div className={`screen-card p-6 animate-slide-up ${discussionTimeUp ? 'ring-2 ring-imposter' : ''}`}>
-        <p className="text-white/80 text-sm font-medium mb-3">
-          {discussionTimeUp ? 'Pick who to eject:' : 'Vote for the Imposter:'}
-        </p>
-        <div className={`space-y-2 ${discussionTimeUp ? 'space-y-3' : ''}`}>
-          {others.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => !hasVoted && setSelectedId(p.id)}
-              disabled={hasVoted}
-              className={`w-full rounded-xl text-left border-2 transition-all flex items-center gap-2 ${
-                discussionTimeUp ? 'p-4 text-lg' : 'p-3'
-              } ${hasVoted ? 'opacity-70 cursor-not-allowed' : ''} ${selectedId === p.id ? selectedStyle : unselectedStyle}`}
-            >
-              <span
-                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                  votedPlayerIds.includes(p.id) ? 'bg-innocent' : 'bg-white/30'
-                }`}
-                title={votedPlayerIds.includes(p.id) ? 'Voted' : 'Waiting'}
-              />
-              {p.name}
-            </button>
-          ))}
-        </div>
-        <div className={discussionTimeUp ? 'mt-4' : 'mt-4'}>
-          <button
-            onClick={() => !hasVoted && setSelectedId(VOTE_SKIP)}
-            disabled={hasVoted}
-            className={`w-full rounded-xl text-center border-2 transition-all ${
-              discussionTimeUp ? 'p-4 text-lg' : 'p-3'
-            } ${hasVoted ? 'opacity-70 cursor-not-allowed' : ''} ${selectedId === VOTE_SKIP ? selectedStyle : unselectedStyle}`}
-          >
-            Skip Vote
-          </button>
-        </div>
-        {hasVoted ? (
-          <p className="text-innocent font-medium py-3 text-center">Vote submitted</p>
-        ) : (
-          <button
-            onClick={handleVote}
-            disabled={!selectedId}
-            className={`btn-primary w-full disabled:opacity-50 mt-4 ${discussionTimeUp ? 'py-5 text-xl' : 'py-4'}`}
-          >
-            Submit Vote
-          </button>
-        )}
-      </div>
 
       <Chat frozen={discussionTimeUp} />
     </div>

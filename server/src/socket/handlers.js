@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { PHASE, HURRY_UP_SECONDS, MAX_DEBATE_SECONDS } from '../game/constants.js';
+import { PHASE, HURRY_UP_SECONDS, MAX_DEBATE_SECONDS, SKIP_DISCUSSION_SECONDS } from '../game/constants.js';
 import {
   getRoomByPlayer,
   createRoomWithHost,
@@ -171,6 +171,54 @@ function broadcastVotersAndMaybeHurryUp(room, io) {
 }
 
 /**
+ * When majority clicked Ready: jump discussion to 3s, notify room, then 3s countdown to DISCUSSION_TIME_UP.
+ * @param {Room} room
+ * @param {Server} io
+ */
+function triggerDiscussionSkip(room, io) {
+  const code = room.code;
+  const votingSec = room.timers?.voting ?? 30;
+  const votingMs = votingSec * 1000;
+
+  const cur = discussionTimers.get(code);
+  if (cur?.tickInterval) {
+    clearInterval(cur.tickInterval);
+    cur.tickInterval = undefined;
+    discussionTimers.set(code, cur);
+  }
+
+  io.to(code).emit(EVENTS.DISCUSSION_SKIPPED, { secondsRemaining: SKIP_DISCUSSION_SECONDS });
+
+  let remaining = SKIP_DISCUSSION_SECONDS;
+  io.to(code).emit(EVENTS.DISCUSSION_TICK, { secondsRemaining: remaining });
+
+  const skipInterval = setInterval(() => {
+    if (room.phase !== PHASE.DISCUSSION) {
+      clearInterval(skipInterval);
+      return;
+    }
+    remaining--;
+    if (remaining < 0) {
+      clearInterval(skipInterval);
+      setDiscussionTimers(code, undefined, undefined);
+      io.to(code).emit(EVENTS.DISCUSSION_TIME_UP);
+      const votingTimeout = setTimeout(() => {
+        clearDiscussionTimers(code);
+        clearPhaseTimeout(code);
+        if (room.phase !== PHASE.DISCUSSION) return;
+        room.tallyVotes();
+        room.awardPoints();
+        proceedToRoundResults(room, io);
+      }, votingMs);
+      setDiscussionVotingTimeout(code, votingTimeout);
+      return;
+    }
+    io.to(code).emit(EVENTS.DISCUSSION_TICK, { secondsRemaining: remaining });
+  }, 1000);
+  setDiscussionTimers(code, skipInterval, undefined);
+}
+
+/**
  * Dynamic timer: discussion phase (talk + chat) then voting phase (VOTE NOW).
  * - Discussion: server emits DISCUSSION_TICK every second with secondsRemaining; at 0 emits DISCUSSION_TIME_UP.
  * - Voting: after DISCUSSION_TIME_UP, room has votingSec to submit votes; then force tally. All vote or hurry-up clears voting timeout.
@@ -184,6 +232,8 @@ function startDiscussionFlow(room, io) {
   const totalDebateMs = Math.min(MAX_DEBATE_SECONDS * 1000, discussionMs + votingMs);
 
   advancePhase(room, PHASE.DISCUSSION, 0);
+
+  room.roundData.readyPlayerIds = [];
 
   const discussionEndsAt = Date.now() + discussionMs;
 
@@ -410,6 +460,22 @@ export function registerSocketHandlers(io) {
       };
       room.chatHistory.push(entry);
       io.to(room.code).emit(EVENTS.CHAT_MESSAGE, entry);
+    });
+
+    socket.on(EVENTS.DISCUSSION_READY, () => {
+      const room = getRoomByPlayer(socket.id);
+      if (!room || room.phase !== PHASE.DISCUSSION) return;
+      if (room.ejectedPlayerIds.has(socket.id)) return;
+      const ready = room.roundData.readyPlayerIds || [];
+      if (ready.includes(socket.id)) return;
+      ready.push(socket.id);
+      room.roundData.readyPlayerIds = ready;
+      const activeCount = room.getActivePlayerList().length;
+      const requiredReady = Math.floor(activeCount / 2) + 1;
+      io.to(room.code).emit(EVENTS.READY_UPDATED, { readyPlayerIds: ready });
+      if (ready.length >= requiredReady) {
+        triggerDiscussionSkip(room, io);
+      }
     });
 
     socket.on(EVENTS.SUBMIT_VOTE, (data) => {

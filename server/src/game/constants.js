@@ -32,6 +32,9 @@ export const MAX_DEBATE_SECONDS = 300;
 /** Seconds left when "panic mode" starts (red UI, tick sound) */
 export const DISCUSSION_PANIC_THRESHOLD = 10;
 
+/** When majority vote "Ready", discussion countdown jumps to this many seconds */
+export const SKIP_DISCUSSION_SECONDS = 3;
+
 /** Default timers (seconds) */
 export const DEFAULT_TIMERS = {
   CLUE_INPUT: 30,

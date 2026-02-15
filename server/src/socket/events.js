@@ -34,8 +34,11 @@ export const EVENTS = {
   // Discussion & Chat
   CHAT_MESSAGE: 'chat:message',
   CHAT_HISTORY: 'chat:history',
+  DISCUSSION_READY: 'game:discussion_ready',
   DISCUSSION_TICK: 'game:discussion_tick',
   DISCUSSION_TIME_UP: 'game:discussion_time_up',
+  DISCUSSION_SKIPPED: 'game:discussion_skipped',
+  READY_UPDATED: 'game:ready_updated',
 
   // Voting
   SUBMIT_VOTE: 'game:submit_vote',

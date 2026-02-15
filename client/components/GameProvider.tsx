@@ -43,6 +43,7 @@ export interface GameState {
     theme?: string;
     clues?: { playerId: string; name: string; clue: string }[];
     votedPlayerIds?: string[];
+    readyPlayerIds?: string[];
     voteResults?: {
       ejectedId?: string | null;
       ejectedName?: string | null;
@@ -71,6 +72,7 @@ interface GameContextValue {
   submitClue: (clue: string) => void;
   sendChatMessage: (message: string) => void;
   submitVote: (targetId: string) => void;
+  submitDiscussionReady: () => void;
   imposterGuess: (guess: string) => void;
   updateSettings: (settings: Partial<GameState['timers'] & { totalRounds?: number }>) => void;
   leaveRoom: () => void;
@@ -167,6 +169,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       );
     });
 
+    socket.on(EVENTS.READY_UPDATED, (data: { readyPlayerIds: string[] }) => {
+      setState((s) =>
+        s.phase === 'discussion' && s.roundData
+          ? { ...s, roundData: { ...s.roundData, readyPlayerIds: data.readyPlayerIds } }
+          : s
+      );
+    });
+
+    socket.on(EVENTS.DISCUSSION_SKIPPED, (data: { secondsRemaining: number }) => {
+      setState((s) =>
+        s.phase === 'discussion'
+          ? { ...s, discussionSecondsRemaining: data.secondsRemaining }
+          : s
+      );
+    });
+
     socket.on(EVENTS.GAME_STATE, (newState: GameState) => {
       setState(newState);
     });
@@ -229,6 +247,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off(EVENTS.PHASE_CHANGED);
       socket.off(EVENTS.DISCUSSION_TICK);
       socket.off(EVENTS.DISCUSSION_TIME_UP);
+      socket.off(EVENTS.READY_UPDATED);
+      socket.off(EVENTS.DISCUSSION_SKIPPED);
       socket.off(EVENTS.GAME_STATE);
       socket.off(EVENTS.VOTERS_UPDATED);
       socket.off(EVENTS.CHAT_MESSAGE);
@@ -280,6 +300,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [socket]
   );
 
+  const submitDiscussionReady = useCallback(() => {
+    socket.emit(EVENTS.DISCUSSION_READY);
+  }, [socket]);
+
   const imposterGuess = useCallback(
     (guess: string) => {
       socket.emit(EVENTS.IMPOSTER_GUESS, { guess });
@@ -313,6 +337,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     submitClue,
     sendChatMessage,
     submitVote,
+    submitDiscussionReady,
     imposterGuess,
     updateSettings,
     leaveRoom,
