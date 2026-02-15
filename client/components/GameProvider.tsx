@@ -61,6 +61,8 @@ export interface GameState {
   discussionTimeUp?: boolean;
   /** Server-authoritative discussion countdown (seconds left); null when not in discussion or after time up */
   discussionSecondsRemaining?: number | null;
+  /** Server-authoritative voting phase countdown (seconds left); null when not in voting phase */
+  votingSecondsRemaining?: number | null;
 }
 
 interface GameContextValue {
@@ -149,6 +151,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         phase: data.phase,
         discussionTimeUp: false,
         discussionSecondsRemaining: null,
+        votingSecondsRemaining: null,
       }));
       if (data.phase === 'imposter_last_chance') {
         setImposterGuessResult(null);
@@ -182,6 +185,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         s.phase === 'discussion'
           ? { ...s, discussionSecondsRemaining: data.secondsRemaining }
           : s
+      );
+    });
+
+    socket.on(EVENTS.VOTING_TICK, (data: { secondsRemaining: number }) => {
+      setState((s) =>
+        s.phase === 'discussion' ? { ...s, votingSecondsRemaining: data.secondsRemaining } : s
       );
     });
 
@@ -249,6 +258,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off(EVENTS.DISCUSSION_TIME_UP);
       socket.off(EVENTS.READY_UPDATED);
       socket.off(EVENTS.DISCUSSION_SKIPPED);
+      socket.off(EVENTS.VOTING_TICK);
       socket.off(EVENTS.GAME_STATE);
       socket.off(EVENTS.VOTERS_UPDATED);
       socket.off(EVENTS.CHAT_MESSAGE);

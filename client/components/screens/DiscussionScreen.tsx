@@ -29,6 +29,7 @@ export function DiscussionScreen() {
   const oneLeftToVote = totalPlayers > 1 && voteCount === totalPlayers - 1;
   const discussionTimeUp = state.discussionTimeUp ?? false;
   const discussionSec = state.timers?.discussion ?? 120;
+  const votingSecondsRemaining = state.votingSecondsRemaining ?? null;
   const serverSecondsRemaining = state.discussionSecondsRemaining ?? null;
   const [localSecondsLeft, setLocalSecondsLeft] = useState<number | null>(null);
   const discussionTimerStarted = useRef(false);
@@ -184,11 +185,23 @@ export function DiscussionScreen() {
       {/* Vote section and VOTE NOW only after discussion time is up */}
       {discussionTimeUp && (
         <>
-          <div className="text-center py-2">
+          <div className="text-center py-2 flex flex-col gap-1">
             <h2 className="text-2xl font-black text-imposter uppercase tracking-wider">Vote now</h2>
+            {votingSecondsRemaining !== null && (
+              <p className="text-white/70 font-mono text-lg font-bold tabular-nums">
+                {votingSecondsRemaining}s to vote
+              </p>
+            )}
           </div>
           <div className="screen-card p-6 animate-slide-up ring-2 ring-imposter">
-            <p className="text-white/80 text-sm font-medium mb-3">Pick who to eject:</p>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <p className="text-white/80 text-sm font-medium">Pick who to eject:</p>
+              {votingSecondsRemaining !== null && (
+                <span className="text-imposter font-mono text-sm font-bold tabular-nums">
+                  {votingSecondsRemaining}s left
+                </span>
+              )}
+            </div>
             <div className="space-y-3">
               {others.map((p) => (
                 <button

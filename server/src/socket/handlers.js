@@ -11,7 +11,7 @@ import { EVENTS } from './events.js';
 /** @type {Map<string, NodeJS.Timeout>} phase timeouts (e.g. fallback) */
 const phaseTimeouts = new Map();
 
-/** @type {Map<string, { tickInterval?: NodeJS.Timeout, votingTimeout?: NodeJS.Timeout }>} discussion-phase timers */
+/** @type {Map<string, { tickInterval?: NodeJS.Timeout, votingTimeout?: NodeJS.Timeout, votingTickInterval?: NodeJS.Timeout }>} discussion-phase timers */
 const discussionTimers = new Map();
 
 /**
@@ -38,10 +38,11 @@ function clearPhaseTimeout(roomCode) {
  * @param {NodeJS.Timeout} [tickInterval]
  * @param {NodeJS.Timeout} [votingTimeout]
  */
-function setDiscussionTimers(roomCode, tickInterval, votingTimeout) {
+function setDiscussionTimers(roomCode, tickInterval, votingTimeout, votingTickInterval) {
   const cur = discussionTimers.get(roomCode) || {};
   if (tickInterval != null) cur.tickInterval = tickInterval;
   if (votingTimeout != null) cur.votingTimeout = votingTimeout;
+  if (votingTickInterval != null) cur.votingTickInterval = votingTickInterval;
   discussionTimers.set(roomCode, cur);
 }
 
@@ -53,6 +54,7 @@ function clearDiscussionTimers(roomCode) {
   if (!cur) return;
   if (cur.tickInterval) clearInterval(cur.tickInterval);
   if (cur.votingTimeout) clearTimeout(cur.votingTimeout);
+  if (cur.votingTickInterval) clearInterval(cur.votingTickInterval);
   discussionTimers.delete(roomCode);
 }
 
@@ -171,6 +173,39 @@ function broadcastVotersAndMaybeHurryUp(room, io) {
 }
 
 /**
+ * Start voting phase: emit VOTING_TICK every second and force tally when time is up.
+ * @param {Room} room
+ * @param {Server} io
+ * @param {number} votingMs
+ */
+function startVotingPhase(room, io, votingMs) {
+  const code = room.code;
+  const votingEndsAt = Date.now() + votingMs;
+  const initialRemaining = Math.max(0, Math.ceil(votingMs / 1000));
+  room._io.to(code).emit(EVENTS.VOTING_TICK, { secondsRemaining: initialRemaining });
+
+  const votingTickInterval = setInterval(() => {
+    if (room.phase !== PHASE.DISCUSSION) {
+      clearInterval(votingTickInterval);
+      return;
+    }
+    const remaining = Math.max(0, Math.ceil((votingEndsAt - Date.now()) / 1000));
+    room._io.to(code).emit(EVENTS.VOTING_TICK, { secondsRemaining: remaining });
+    if (remaining <= 0) clearInterval(votingTickInterval);
+  }, 1000);
+
+  const votingTimeout = setTimeout(() => {
+    clearDiscussionTimers(code);
+    clearPhaseTimeout(code);
+    if (room.phase !== PHASE.DISCUSSION) return;
+    room.tallyVotes();
+    room.awardPoints();
+    proceedToRoundResults(room, io);
+  }, votingMs);
+  setDiscussionTimers(code, undefined, votingTimeout, votingTickInterval);
+}
+
+/**
  * When majority clicked Ready: jump discussion to 3s, notify room, then 3s countdown to DISCUSSION_TIME_UP.
  * @param {Room} room
  * @param {Server} io
@@ -200,22 +235,14 @@ function triggerDiscussionSkip(room, io) {
     remaining--;
     if (remaining < 0) {
       clearInterval(skipInterval);
-      setDiscussionTimers(code, undefined, undefined);
+      setDiscussionTimers(code, undefined, undefined, undefined);
       io.to(code).emit(EVENTS.DISCUSSION_TIME_UP);
-      const votingTimeout = setTimeout(() => {
-        clearDiscussionTimers(code);
-        clearPhaseTimeout(code);
-        if (room.phase !== PHASE.DISCUSSION) return;
-        room.tallyVotes();
-        room.awardPoints();
-        proceedToRoundResults(room, io);
-      }, votingMs);
-      setDiscussionVotingTimeout(code, votingTimeout);
+      startVotingPhase(room, io, votingMs);
       return;
     }
     io.to(code).emit(EVENTS.DISCUSSION_TICK, { secondsRemaining: remaining });
   }, 1000);
-  setDiscussionTimers(code, skipInterval, undefined);
+  setDiscussionTimers(code, skipInterval, undefined, undefined);
 }
 
 /**
@@ -246,20 +273,12 @@ function startDiscussionFlow(room, io) {
     io.to(code).emit(EVENTS.DISCUSSION_TICK, { secondsRemaining: remaining });
     if (remaining <= 0) {
       clearInterval(tickInterval);
-      setDiscussionTimers(code, undefined, undefined);
+      setDiscussionTimers(code, undefined, undefined, undefined);
       io.to(code).emit(EVENTS.DISCUSSION_TIME_UP);
-      const votingTimeout = setTimeout(() => {
-        clearDiscussionTimers(code);
-        clearPhaseTimeout(code);
-        if (room.phase !== PHASE.DISCUSSION) return;
-        room.tallyVotes();
-        room.awardPoints();
-        proceedToRoundResults(room, io);
-      }, votingMs);
-      setDiscussionVotingTimeout(code, votingTimeout);
+      startVotingPhase(room, io, votingMs);
     }
   }, 1000);
-  setDiscussionTimers(code, tickInterval, undefined);
+  setDiscussionTimers(code, tickInterval, undefined, undefined);
 
   const fallbackTimeout = setTimeout(() => {
     clearDiscussionTimers(code);

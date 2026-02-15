@@ -32,6 +32,7 @@ export const EVENTS = {
   SUBMIT_VOTE: 'game:submit_vote',
   VOTE_SUBMITTED: 'game:vote_submitted',
   VOTERS_UPDATED: 'game:voters_updated',
+  VOTING_TICK: 'game:voting_tick',
   VOTING_ENDED: 'game:voting_ended',
   ROUND_RESULTS: 'game:round_results',
   IMPOSTER_LAST_CHANCE: 'game:imposter_last_chance',
