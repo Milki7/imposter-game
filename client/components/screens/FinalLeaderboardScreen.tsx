@@ -7,10 +7,22 @@ export function FinalLeaderboardScreen() {
   const leaderboard = state.leaderboard ?? [];
   const winner = leaderboard[0];
   const isHost = state.hostId === socketId;
+  const finalWord = state.finalWord;
+  const finalImposterName = state.finalImposterName;
 
   return (
     <div className="w-full max-w-lg mx-auto screen-card p-8 animate-slide-up">
       <h2 className="text-2xl font-bold text-center mb-6">Final Leaderboard</h2>
+      {(finalWord != null || finalImposterName != null) && (
+        <div className="mb-6 p-4 rounded-xl bg-white/10 border border-white/20 space-y-2">
+          {finalImposterName != null && (
+            <p className="text-imposter font-semibold">The Imposter was: {finalImposterName}</p>
+          )}
+          {finalWord != null && (
+            <p className="text-innocent font-semibold">The word was: {finalWord}</p>
+          )}
+        </div>
+      )}
       {winner && (
         <div className="text-center mb-6 p-4 rounded-xl bg-imposter/20 border border-imposter">
           <p className="text-4xl mb-2">🏆</p>

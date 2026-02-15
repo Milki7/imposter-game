@@ -353,7 +353,13 @@ function finishRound(room, io) {
   if (room.isGameOver()) {
     room.phase = PHASE.FINAL_LEADERBOARD;
     io.to(code).emit(EVENTS.GAME_OVER);
-    io.to(code).emit(EVENTS.LEADERBOARD, room.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score })));
+    const lastImposter = room.getPlayerList().find((p) => p.role === 'imposter');
+    const finalWord = room.roundData?.word ?? null;
+    io.to(code).emit(EVENTS.LEADERBOARD, {
+      leaderboard: room.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score })),
+      finalWord: finalWord || undefined,
+      finalImposterName: lastImposter?.name ?? undefined,
+    });
     clearPhaseTimeout(code);
     return;
   }

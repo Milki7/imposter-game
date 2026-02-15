@@ -57,6 +57,10 @@ export interface GameState {
   chatHistory: { playerId: string; name: string; message: string; timestamp: number }[];
   timers?: { clueInput?: number; discussion?: number; voting?: number };
   leaderboard?: { id: string; name: string; score: number }[];
+  /** Last round secret word (revealed on final leaderboard) */
+  finalWord?: string;
+  /** Last round imposter display name (revealed on final leaderboard) */
+  finalImposterName?: string;
   ejectedPlayerIds?: string[];
   discussionTimeUp?: boolean;
   /** Server-authoritative discussion countdown (seconds left); null when not in discussion or after time up */
@@ -227,8 +231,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({ ...s, phase: 'final_leaderboard' }));
     });
 
-    socket.on(EVENTS.LEADERBOARD, (leaderboard: GameState['leaderboard']) => {
-      setState((s) => ({ ...s, leaderboard, phase: 'final_leaderboard' }));
+    socket.on(EVENTS.LEADERBOARD, (data: { leaderboard?: GameState['leaderboard']; finalWord?: string; finalImposterName?: string }) => {
+      setState((s) => ({
+        ...s,
+        leaderboard: data?.leaderboard ?? s.leaderboard,
+        finalWord: data?.finalWord,
+        finalImposterName: data?.finalImposterName,
+        phase: 'final_leaderboard',
+      }));
     });
 
     socket.on(EVENTS.ROOM_LEFT, () => {
