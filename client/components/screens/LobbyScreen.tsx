@@ -19,6 +19,46 @@ export function LobbyScreen() {
           {state.players.length} / 8 players (need 3–8 to start)
         </p>
 
+        <div className="mb-4 p-3 rounded-xl bg-white/5 text-sm">
+          {state.players.length >= 6 ? (
+            isHost ? (
+              <div>
+                <label className="block text-white/80 mb-2">Imposters (6+ players)</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updateSettings({ imposters: 1 })}
+                    className={`flex-1 py-2 rounded-lg font-medium border-2 transition-all ${
+                      (state.numberOfImposters ?? 1) === 1
+                        ? 'bg-imposter/30 border-imposter text-white'
+                        : 'border-white/20 bg-white/5 text-white/70 hover:bg-white/10'
+                    }`}
+                  >
+                    1 Imposter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateSettings({ imposters: 2 })}
+                    className={`flex-1 py-2 rounded-lg font-medium border-2 transition-all ${
+                      (state.numberOfImposters ?? 1) === 2
+                        ? 'bg-imposter/30 border-imposter text-white'
+                        : 'border-white/20 bg-white/5 text-white/70 hover:bg-white/10'
+                    }`}
+                  >
+                    2 Imposters
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-white/80">
+                Imposters: {(state.numberOfImposters ?? 1) === 2 ? '2' : '1'}
+              </p>
+            )
+          ) : (
+            <p className="text-white/80">1 Imposter (fixed for 3–5 players)</p>
+          )}
+        </div>
+
         {isHost && (
           <div className="mb-4 p-3 rounded-xl bg-white/5 text-sm space-y-3">
             <div>

@@ -56,11 +56,15 @@ export interface GameState {
   currentCluePlayerName?: string;
   chatHistory: { playerId: string; name: string; message: string; timestamp: number }[];
   timers?: { clueInput?: number; discussion?: number; voting?: number };
+  /** 1 or 2 imposters when 6+ players (host choice); 3-5 players always use 1 */
+  numberOfImposters?: 1 | 2;
   leaderboard?: { id: string; name: string; score: number }[];
   /** Last round secret word (revealed on final leaderboard) */
   finalWord?: string;
   /** Last round imposter display name (revealed on final leaderboard) */
   finalImposterName?: string;
+  /** Last round imposter names (one or two) for final leaderboard */
+  finalImposterNames?: string[];
   ejectedPlayerIds?: string[];
   discussionTimeUp?: boolean;
   /** Server-authoritative discussion countdown (seconds left); null when not in discussion or after time up */
@@ -80,7 +84,7 @@ interface GameContextValue {
   submitVote: (targetId: string) => void;
   submitDiscussionReady: () => void;
   imposterGuess: (guess: string) => void;
-  updateSettings: (settings: Partial<GameState['timers'] & { totalRounds?: number }>) => void;
+  updateSettings: (settings: Partial<GameState['timers'] & { totalRounds?: number; imposters?: 1 | 2 }>) => void;
   leaveRoom: () => void;
   restartGame: () => void;
   inRoom: boolean;
@@ -139,11 +143,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }));
     });
 
-    socket.on(EVENTS.SETTINGS_UPDATED, (data: { timers?: GameState['timers']; totalRounds?: number }) => {
+    socket.on(EVENTS.SETTINGS_UPDATED, (data: { timers?: GameState['timers']; totalRounds?: number; numberOfImposters?: 1 | 2 }) => {
       setState((s) => ({
         ...s,
         timers: data?.timers ?? s.timers,
         totalRounds: data?.totalRounds ?? s.totalRounds,
+        numberOfImposters: data?.numberOfImposters ?? s.numberOfImposters,
       }));
     });
 
@@ -231,12 +236,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({ ...s, phase: 'final_leaderboard' }));
     });
 
-    socket.on(EVENTS.LEADERBOARD, (data: { leaderboard?: GameState['leaderboard']; finalWord?: string; finalImposterName?: string }) => {
+    socket.on(EVENTS.LEADERBOARD, (data: { leaderboard?: GameState['leaderboard']; finalWord?: string; finalImposterName?: string; finalImposterNames?: string[] }) => {
       setState((s) => ({
         ...s,
         leaderboard: data?.leaderboard ?? s.leaderboard,
         finalWord: data?.finalWord,
         finalImposterName: data?.finalImposterName,
+        finalImposterNames: data?.finalImposterNames,
         phase: 'final_leaderboard',
       }));
     });
@@ -332,7 +338,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateSettings = useCallback(
-    (settings: Partial<GameState['timers'] & { totalRounds?: number }>) => {
+    (settings: Partial<GameState['timers'] & { totalRounds?: number; imposters?: 1 | 2 }>) => {
       socket.emit(EVENTS.UPDATE_SETTINGS, settings);
     },
     [socket]

@@ -353,12 +353,14 @@ function finishRound(room, io) {
   if (room.isGameOver()) {
     room.phase = PHASE.FINAL_LEADERBOARD;
     io.to(code).emit(EVENTS.GAME_OVER);
-    const lastImposter = room.getPlayerList().find((p) => p.role === 'imposter');
+    const lastImposters = room.getPlayerList().filter((p) => p.role === 'imposter');
     const finalWord = room.roundData?.word ?? null;
+    const finalImposterNames = lastImposters.map((p) => p.name);
     io.to(code).emit(EVENTS.LEADERBOARD, {
       leaderboard: room.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score })),
       finalWord: finalWord || undefined,
-      finalImposterName: lastImposter?.name ?? undefined,
+      finalImposterName: finalImposterNames[0] ?? undefined,
+      finalImposterNames: finalImposterNames.length > 0 ? finalImposterNames : undefined,
     });
     clearPhaseTimeout(code);
     return;
@@ -426,9 +428,11 @@ export function registerSocketHandlers(io) {
       if (data?.discussion != null) room.timers.discussion = Math.max(30, Math.min(300, data.discussion));
       if (data?.voting != null) room.timers.voting = Math.max(15, Math.min(60, data.voting));
       if (data?.imposterLastChance != null) room.timers.imposterLastChance = Math.max(5, Math.min(30, data.imposterLastChance));
+      if (data?.imposters === 1 || data?.imposters === 2) room.numberOfImposters = data.imposters;
       io.to(room.code).emit(EVENTS.SETTINGS_UPDATED, {
         timers: room.timers,
         totalRounds: room.totalRounds,
+        numberOfImposters: room.numberOfImposters,
       });
     });
 

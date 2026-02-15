@@ -57,6 +57,9 @@ export class Room {
   /** @type {Set<string>} Player IDs ejected this game (can't play anymore) */
   ejectedPlayerIds = new Set();
 
+  /** @type {1|2} Number of imposters when 6+ players (host choice); 3-5 players always use 1 */
+  numberOfImposters = 1;
+
   constructor() {
     this.code = generateRoomCode();
   }
@@ -76,10 +79,11 @@ export class Room {
     return this.getActivePlayerList().length;
   }
 
-  /** @returns {number} */
+  /** @returns {number} 1 for 3-5 players; host choice (1 or 2) for 6+ */
   get imposterCount() {
     const n = this.activeCount;
-    return n <= 5 ? 1 : 2;
+    if (n <= 5) return 1;
+    return this.numberOfImposters === 2 ? 2 : 1;
   }
 
   /** @returns {Player[]} */
@@ -388,6 +392,7 @@ export class Room {
       roundData: this.getSanitizedRoundData(playerId),
       chatHistory: this.chatHistory,
       timers: this.timers,
+      numberOfImposters: this.numberOfImposters,
       currentCluePlayerId: clueTurn.currentCluePlayerId ?? undefined,
       currentCluePlayerName: clueTurn.currentCluePlayerName ?? undefined,
       leaderboard: this.phase === PHASE.FINAL_LEADERBOARD
