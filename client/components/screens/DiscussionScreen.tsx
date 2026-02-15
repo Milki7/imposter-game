@@ -27,6 +27,7 @@ export function DiscussionScreen() {
   const requiredReady = totalPlayers > 0 ? Math.floor(totalPlayers / 2) + 1 : 1;
   const others = activePlayers.filter((p) => p.id !== socketId);
   const oneLeftToVote = totalPlayers > 1 && voteCount === totalPlayers - 1;
+  const imposterCount = totalPlayers <= 5 ? 1 : (state.numberOfImposters ?? 1);
   const discussionTimeUp = state.discussionTimeUp ?? false;
   const discussionSec = state.timers?.discussion ?? 120;
   const votingSecondsRemaining = state.votingSecondsRemaining ?? null;
@@ -116,6 +117,9 @@ export function DiscussionScreen() {
         <div className="screen-card p-6 animate-slide-up text-center">
           <h2 className="text-xl font-bold mb-2">You were ejected</h2>
           <p className="text-white/60 mb-4">You can only watch. Chat is still available.</p>
+          <p className="text-imposter text-sm font-semibold mb-4">
+            {imposterCount === 1 ? '1 Imposter' : `${imposterCount} Imposters`} in the game
+          </p>
           <div className="space-y-2 mb-4 text-left">
             <p className="text-white/80 text-sm font-medium">Clues this round:</p>
             {clues.map((c) => (
@@ -138,7 +142,12 @@ export function DiscussionScreen() {
           panicMode ? 'ring-2 ring-red-500 bg-red-950/40 border-red-500/50' : ''
         }`}
       >
-        <h2 className="text-lg font-bold mb-3">Everyone&apos;s clues</h2>
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+          <h2 className="text-lg font-bold">Everyone&apos;s clues</h2>
+          <span className="text-imposter text-sm font-semibold">
+            {imposterCount === 1 ? '1 Imposter' : `${imposterCount} Imposters`}
+          </span>
+        </div>
         <div className="grid grid-cols-1 gap-2">
           {clues.map((c) => (
             <div key={c.playerId} className="p-3 rounded-xl bg-white/5 border border-white/10 text-sm flex justify-between items-center gap-2">
