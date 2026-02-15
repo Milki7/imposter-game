@@ -29,6 +29,9 @@ export const HURRY_UP_SECONDS = 10;
 /** Max debate phase duration (safety fallback, seconds) */
 export const MAX_DEBATE_SECONDS = 300;
 
+/** Seconds left when "panic mode" starts (red UI, tick sound) */
+export const DISCUSSION_PANIC_THRESHOLD = 10;
+
 /** Default timers (seconds) */
 export const DEFAULT_TIMERS = {
   CLUE_INPUT: 30,

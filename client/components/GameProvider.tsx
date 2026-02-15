@@ -58,6 +58,8 @@ export interface GameState {
   leaderboard?: { id: string; name: string; score: number }[];
   ejectedPlayerIds?: string[];
   discussionTimeUp?: boolean;
+  /** Server-authoritative discussion countdown (seconds left); null when not in discussion or after time up */
+  discussionSecondsRemaining?: number | null;
 }
 
 interface GameContextValue {
@@ -140,14 +142,29 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     socket.on(EVENTS.GAME_STARTED, () => {});
 
     socket.on(EVENTS.PHASE_CHANGED, (data: { phase: Phase }) => {
-      setState((s) => ({ ...s, phase: data.phase, discussionTimeUp: false }));
+      setState((s) => ({
+        ...s,
+        phase: data.phase,
+        discussionTimeUp: false,
+        discussionSecondsRemaining: null,
+      }));
       if (data.phase === 'imposter_last_chance') {
         setImposterGuessResult(null);
       }
     });
 
+    socket.on(EVENTS.DISCUSSION_TICK, (data: { secondsRemaining: number }) => {
+      setState((s) =>
+        s.phase === 'discussion' ? { ...s, discussionSecondsRemaining: data.secondsRemaining } : s
+      );
+    });
+
     socket.on(EVENTS.DISCUSSION_TIME_UP, () => {
-      setState((s) => (s.phase === 'discussion' ? { ...s, discussionTimeUp: true } : s));
+      setState((s) =>
+        s.phase === 'discussion'
+          ? { ...s, discussionTimeUp: true, discussionSecondsRemaining: 0 }
+          : s
+      );
     });
 
     socket.on(EVENTS.GAME_STATE, (newState: GameState) => {
@@ -210,6 +227,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off(EVENTS.SETTINGS_UPDATED);
       socket.off(EVENTS.GAME_STARTED);
       socket.off(EVENTS.PHASE_CHANGED);
+      socket.off(EVENTS.DISCUSSION_TICK);
       socket.off(EVENTS.DISCUSSION_TIME_UP);
       socket.off(EVENTS.GAME_STATE);
       socket.off(EVENTS.VOTERS_UPDATED);

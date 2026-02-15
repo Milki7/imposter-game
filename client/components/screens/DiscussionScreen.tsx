@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/components/GameProvider';
 import { Chat } from '@/components/Chat';
-import { VOTE_SKIP } from '@/lib/constants';
+import { VOTE_SKIP, DISCUSSION_PANIC_THRESHOLD } from '@/lib/constants';
 
 const HURRY_UP_SECONDS = 10;
 
@@ -25,8 +25,18 @@ export function DiscussionScreen() {
   const oneLeftToVote = totalPlayers > 1 && voteCount === totalPlayers - 1;
   const discussionTimeUp = state.discussionTimeUp ?? false;
   const discussionSec = state.timers?.discussion ?? 120;
-  const [discussionSecondsLeft, setDiscussionSecondsLeft] = useState<number | null>(null);
+  const serverSecondsRemaining = state.discussionSecondsRemaining ?? null;
+  const [localSecondsLeft, setLocalSecondsLeft] = useState<number | null>(null);
   const discussionTimerStarted = useRef(false);
+  const tickSoundPlayedFor = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const displaySecondsRemaining =
+    serverSecondsRemaining !== null
+      ? serverSecondsRemaining
+      : (discussionTimeUp ? 0 : localSecondsLeft ?? discussionSec);
+  const panicMode =
+    !discussionTimeUp && displaySecondsRemaining > 0 && displaySecondsRemaining <= DISCUSSION_PANIC_THRESHOLD;
 
   useEffect(() => {
     if (oneLeftToVote && !hurryUpStarted.current) {
@@ -48,19 +58,42 @@ export function DiscussionScreen() {
   useEffect(() => {
     if (state.phase !== 'discussion') {
       discussionTimerStarted.current = false;
+      tickSoundPlayedFor.current = null;
       return;
     }
     if (discussionTimerStarted.current) return;
     discussionTimerStarted.current = true;
-    setDiscussionSecondsLeft(discussionSec);
+    setLocalSecondsLeft(discussionSec);
   }, [state.phase, discussionSec]);
 
   useEffect(() => {
-    if (discussionTimeUp || discussionSecondsLeft === null) return;
-    if (discussionSecondsLeft <= 0) return;
-    const t = setInterval(() => setDiscussionSecondsLeft((s) => (s != null && s > 0 ? s - 1 : 0)), 1000);
+    if (discussionTimeUp || serverSecondsRemaining !== null) return;
+    if (localSecondsLeft === null || localSecondsLeft <= 0) return;
+    const t = setInterval(() => setLocalSecondsLeft((s) => (s != null && s > 0 ? s - 1 : 0)), 1000);
     return () => clearInterval(t);
-  }, [discussionSecondsLeft, discussionTimeUp]);
+  }, [localSecondsLeft, discussionTimeUp, serverSecondsRemaining]);
+
+  useEffect(() => {
+    if (!panicMode || displaySecondsRemaining <= 0) return;
+    if (tickSoundPlayedFor.current === displaySecondsRemaining) return;
+    tickSoundPlayedFor.current = displaySecondsRemaining;
+    try {
+      const ctx = audioContextRef.current ?? new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      if (!audioContextRef.current) audioContextRef.current = ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.08);
+    } catch {
+      // ignore if audio not allowed
+    }
+  }, [panicMode, displaySecondsRemaining]);
 
   const handleVote = () => {
     if (selectedId && !hasVoted) {
@@ -92,12 +125,14 @@ export function DiscussionScreen() {
     );
   }
 
-  const displayDiscussionTime = discussionTimeUp ? 0 : (discussionSecondsLeft ?? discussionSec);
-
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
-      {/* All clues on one screen */}
-      <div className="screen-card p-4 animate-slide-up">
+      {/* All clues on one screen - red border/background in panic mode */}
+      <div
+        className={`screen-card p-4 animate-slide-up transition-colors duration-300 ${
+          panicMode ? 'ring-2 ring-red-500 bg-red-950/40 border-red-500/50' : ''
+        }`}
+      >
         <h2 className="text-lg font-bold mb-3">Everyone&apos;s clues</h2>
         <div className="grid grid-cols-1 gap-2">
           {clues.map((c) => (
@@ -108,11 +143,18 @@ export function DiscussionScreen() {
           ))}
         </div>
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
-          <span className="text-white/60 text-sm">
-            {discussionTimeUp ? 'Discussion over — vote now!' : `${displayDiscussionTime}s to discuss`}
+          <span
+            className={`text-sm font-mono font-bold tabular-nums ${
+              panicMode ? 'text-red-400 animate-pulse' : 'text-white/60'
+            }`}
+          >
+            {discussionTimeUp ? 'Discussion over — vote now!' : `${displaySecondsRemaining}s to discuss`}
           </span>
           <span className="text-innocent text-sm font-medium">{voteCount}/{totalPlayers} voted</span>
         </div>
+        {panicMode && (
+          <p className="text-red-400 font-bold text-sm mt-2 uppercase tracking-wider">Last 10 seconds — panic mode!</p>
+        )}
         {oneLeftToVote && hurryUpSeconds !== null && (
           <p className="text-imposter font-mono text-sm font-bold mt-2">Hurry up! {hurryUpSeconds}s</p>
         )}
