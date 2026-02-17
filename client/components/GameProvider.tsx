@@ -30,6 +30,8 @@ export interface Player {
   theme?: string;
   clue?: string;
   voteCount?: number;
+  /** Animal emoji avatar assigned on join */
+  avatar?: string;
 }
 
 export interface GameState {
@@ -58,7 +60,7 @@ export interface GameState {
   timers?: { clueInput?: number; discussion?: number; voting?: number };
   /** 1 or 2 imposters when 6+ players (host choice); 3-5 players always use 1 */
   numberOfImposters?: 1 | 2;
-  leaderboard?: { id: string; name: string; score: number }[];
+  leaderboard?: { id: string; name: string; score: number; avatar?: string }[];
   /** Last round secret word (revealed on final leaderboard) */
   finalWord?: string;
   /** Last round imposter display name (revealed on final leaderboard) */

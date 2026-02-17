@@ -57,6 +57,11 @@ export const ROUND_WORDS = [
   { theme: 'Weather', word: 'Thunderstorm' },
 ];
 
+/** Animal emojis for player avatars (assigned on join) */
+export const ANIMAL_AVATARS = [
+  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🦄',
+];
+
 /** Generate random 4-letter room code */
 export function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';

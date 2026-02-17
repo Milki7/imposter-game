@@ -122,11 +122,15 @@ export function DiscussionScreen() {
           </p>
           <div className="space-y-2 mb-4 text-left">
             <p className="text-white/80 text-sm font-medium">Clues this round:</p>
-            {clues.map((c) => (
-              <div key={c.playerId} className="p-2 rounded-lg bg-white/5 text-sm">
-                <span className="text-white/60">{c.name}:</span> <span className="text-white">{c.clue}</span>
-              </div>
-            ))}
+            {clues.map((c) => {
+              const avatar = state.players.find((p) => p.id === c.playerId)?.avatar ?? '👤';
+              return (
+                <div key={c.playerId} className="p-2 rounded-lg bg-white/5 text-sm flex items-center gap-2">
+                  <span className="text-xl">{avatar}</span>
+                  <span className="text-white/60">{c.name}:</span> <span className="text-white">{c.clue}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
         <Chat frozen={discussionTimeUp} />
@@ -149,12 +153,18 @@ export function DiscussionScreen() {
           </span>
         </div>
         <div className="grid grid-cols-1 gap-2">
-          {clues.map((c) => (
-            <div key={c.playerId} className="p-3 rounded-xl bg-white/5 border border-white/10 text-sm flex justify-between items-center gap-2">
-              <span className="text-white/70 font-medium">{c.name}</span>
-              <span className="text-white font-semibold">{c.clue}</span>
-            </div>
-          ))}
+          {clues.map((c) => {
+            const avatar = state.players.find((p) => p.id === c.playerId)?.avatar ?? '👤';
+            return (
+              <div key={c.playerId} className="p-3 rounded-xl bg-white/5 border border-white/10 text-sm flex justify-between items-center gap-2">
+                <span className="text-white/70 font-medium flex items-center gap-2">
+                  <span className="text-xl">{avatar}</span>
+                  {c.name}
+                </span>
+                <span className="text-white font-semibold">{c.clue}</span>
+              </div>
+            );
+          })}
         </div>
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10 flex-wrap gap-2">
           <span
@@ -227,6 +237,7 @@ export function DiscussionScreen() {
                     }`}
                     title={votedPlayerIds.includes(p.id) ? 'Voted' : 'Waiting'}
                   />
+                  <span className="text-xl flex-shrink-0">{p.avatar ?? '👤'}</span>
                   {p.name}
                 </button>
               ))}

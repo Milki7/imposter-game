@@ -357,7 +357,7 @@ function finishRound(room, io) {
     const finalWord = room.roundData?.word ?? null;
     const finalImposterNames = lastImposters.map((p) => p.name);
     io.to(code).emit(EVENTS.LEADERBOARD, {
-      leaderboard: room.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score })),
+      leaderboard: room.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score, avatar: p.avatar })),
       finalWord: finalWord || undefined,
       finalImposterName: finalImposterNames[0] ?? undefined,
       finalImposterNames: finalImposterNames.length > 0 ? finalImposterNames : undefined,
@@ -411,8 +411,15 @@ export function registerSocketHandlers(io) {
       const room = result.room;
       socket.join(room.code);
       socket.emit(EVENTS.ROOM_JOINED, { state: room.getPublicState(socket.id) });
+      const joinedPlayer = room.players.get(socket.id);
       socket.to(room.code).emit(EVENTS.PLAYER_JOINED, {
-        player: { id: socket.id, name: String(name).trim(), score: 0, isHost: false },
+        player: {
+          id: socket.id,
+          name: String(name).trim(),
+          score: 0,
+          isHost: false,
+          avatar: joinedPlayer?.avatar,
+        },
       });
     });
 

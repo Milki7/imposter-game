@@ -38,11 +38,14 @@ export function FinalLeaderboardScreen() {
         {leaderboard.map((p, i) => (
           <li
             key={p.id}
-            className={`flex justify-between items-center p-3 rounded-xl ${
+            className={`flex justify-between items-center p-3 rounded-xl gap-2 ${
               i === 0 ? 'bg-imposter/10' : 'bg-white/5'
             }`}
           >
-            <span className="font-medium">{i + 1}. {p.name}</span>
+            <span className="font-medium flex items-center gap-2">
+              <span className="text-2xl">{p.avatar ?? '👤'}</span>
+              {i + 1}. {p.name}
+            </span>
             <span>{p.score} pts</span>
           </li>
         ))}

@@ -1,4 +1,4 @@
-import { PHASE, POINTS, VOTE_SKIP, DEFAULT_TIMERS, ROUND_WORDS, generateRoomCode } from './constants.js';
+import { PHASE, POINTS, VOTE_SKIP, DEFAULT_TIMERS, ROUND_WORDS, generateRoomCode, ANIMAL_AVATARS } from './constants.js';
 
 /**
  * @typedef {Object} Player
@@ -125,6 +125,9 @@ export class Room {
     if (this.players.size >= 8) return false;
     const host = isHost || !this.hostId;
     if (host) this.hostId = id;
+    const usedAvatars = new Set(this.getPlayerList().map((p) => p.avatar).filter(Boolean));
+    const available = ANIMAL_AVATARS.filter((a) => !usedAvatars.has(a));
+    const avatar = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : ANIMAL_AVATARS[0];
     this.players.set(id, {
       id,
       name,
@@ -132,6 +135,7 @@ export class Room {
       score: 0,
       isHost: host,
       voteCount: 0,
+      avatar,
     });
     return true;
   }
@@ -374,6 +378,7 @@ export class Room {
       name: p.name,
       score: p.score,
       isHost: p.isHost,
+      avatar: p.avatar,
       role: player?.id === p.id ? p.role : undefined,
       secretWord: player?.id === p.id ? p.secretWord : undefined,
       theme: player?.id === p.id ? p.theme : undefined,
@@ -396,7 +401,7 @@ export class Room {
       currentCluePlayerId: clueTurn.currentCluePlayerId ?? undefined,
       currentCluePlayerName: clueTurn.currentCluePlayerName ?? undefined,
       leaderboard: this.phase === PHASE.FINAL_LEADERBOARD
-        ? this.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score }))
+        ? this.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score, avatar: p.avatar }))
         : undefined,
       ejectedPlayerIds: Array.from(this.ejectedPlayerIds),
     };

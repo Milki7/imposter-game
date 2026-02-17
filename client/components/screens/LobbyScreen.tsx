@@ -111,7 +111,9 @@ export function LobbyScreen() {
         <ul className="space-y-2 mb-4">
           {state.players.map((p) => (
             <li key={p.id} className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-imposter" />
+              <span className="text-2xl w-8 text-center flex-shrink-0" title="Avatar">
+                {p.avatar ?? '👤'}
+              </span>
               {p.name}
               {p.isHost && <span className="text-xs text-white/50">(host)</span>}
             </li>
