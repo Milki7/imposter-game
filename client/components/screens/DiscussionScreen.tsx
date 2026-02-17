@@ -113,7 +113,8 @@ export function DiscussionScreen() {
 
   if (isEjected) {
     return (
-      <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
+      <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full">
+        <div className="flex-1 min-w-0 max-w-lg flex flex-col gap-4 overflow-y-auto">
         <div className="screen-card p-6 animate-slide-up text-center">
           <h2 className="text-xl font-bold mb-2">You were ejected</h2>
           <p className="text-white/60 mb-4">You can only watch. Chat is still available.</p>
@@ -133,13 +134,17 @@ export function DiscussionScreen() {
             })}
           </div>
         </div>
-        <Chat frozen={discussionTimeUp} />
+        </div>
+        <aside className="w-full lg:w-72 flex-shrink-0 flex flex-col min-h-0">
+          <Chat frozen={discussionTimeUp} />
+        </aside>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
+    <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full">
+      <div className="flex-1 min-w-0 max-w-lg flex flex-col gap-4 overflow-y-auto">
       {/* All clues on one screen - red border/background in panic mode */}
       <div
         className={`screen-card p-4 animate-slide-up transition-colors duration-300 ${
@@ -267,8 +272,10 @@ export function DiscussionScreen() {
           </div>
         </>
       )}
-
-      <Chat frozen={discussionTimeUp} />
+      </div>
+      <aside className="w-full lg:w-72 flex-shrink-0 flex flex-col min-h-0">
+        <Chat frozen={discussionTimeUp} />
+      </aside>
     </div>
   );
 }

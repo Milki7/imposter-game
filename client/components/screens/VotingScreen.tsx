@@ -18,7 +18,8 @@ export function VotingScreen() {
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
+    <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full">
+      <div className="flex-1 min-w-0 max-w-lg flex flex-col gap-4 overflow-y-auto">
       <div className="screen-card p-6 animate-slide-up">
         <h2 className="text-xl font-bold mb-2">Vote for the Imposter</h2>
         <p className="text-white/60 text-sm mb-4">Blind vote — results hidden until time ends</p>
@@ -66,7 +67,10 @@ export function VotingScreen() {
           Submit Vote
         </button>
       </div>
-      <Chat />
+      </div>
+      <aside className="w-full lg:w-72 flex-shrink-0 flex flex-col min-h-0">
+        <Chat />
+      </aside>
     </div>
   );
 }
