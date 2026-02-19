@@ -45,7 +45,7 @@ export function Chat({ frozen = false }: ChatProps) {
               <div key={`${m.playerId}-${m.timestamp}`} className="text-sm flex items-center gap-2">
                 <span className="text-lg flex-shrink-0">{avatar}</span>
                 <span className="text-imposter font-medium">{m.name}:</span>{' '}
-                <span className="text-black/90">{m.message}</span>
+                <span className="text-white/90">{m.message}</span>
               </div>
             );
           })

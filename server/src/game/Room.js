@@ -247,7 +247,7 @@ export class Room {
     return this.clueTurnIndex >= this.clueTurnOrder.length;
   }
 
-  /** Skip current player's turn (timeout) */
+  /** Skip current player's turn (timeout or disconnect) */
   skipClueTurn() {
     const currentId = this.clueTurnOrder[this.clueTurnIndex];
     if (!currentId) return;

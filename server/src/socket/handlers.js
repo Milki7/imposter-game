@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import { PHASE, HURRY_UP_SECONDS, MAX_DEBATE_SECONDS, SKIP_DISCUSSION_SECONDS } from '../game/constants.js';
 import {
   getRoomByPlayer,
+  getRoom,
   createRoomWithHost,
   joinRoom,
   leaveRoom,
@@ -339,6 +340,28 @@ function runGameLoop(room, io) {
 }
 
 /**
+ * End game and show final leaderboard (e.g. disconnect with no imposters or too few players).
+ * @param {Room} room
+ * @param {Server} io
+ */
+function endGameAndShowLeaderboard(room, io) {
+  const code = room.code;
+  clearDiscussionTimers(code);
+  clearPhaseTimeout(code);
+  room.phase = PHASE.FINAL_LEADERBOARD;
+  io.to(code).emit(EVENTS.GAME_OVER);
+  const lastImposters = room.getPlayerList().filter((p) => p.role === 'imposter');
+  const finalWord = room.roundData?.word ?? null;
+  const finalImposterNames = lastImposters.map((p) => p.name);
+  io.to(code).emit(EVENTS.LEADERBOARD, {
+    leaderboard: room.getLeaderboard().map((p) => ({ id: p.id, name: p.name, score: p.score, avatar: p.avatar })),
+    finalWord: finalWord || undefined,
+    finalImposterName: finalImposterNames[0] ?? undefined,
+    finalImposterNames: finalImposterNames.length > 0 ? finalImposterNames : undefined,
+  });
+}
+
+/**
  * @param {Room} room
  * @param {Server} io
  */
@@ -574,12 +597,71 @@ export function registerSocketHandlers(io) {
 
     socket.on(EVENTS.DISCONNECT, () => {
       const room = getRoomByPlayer(socket.id);
-      if (room) {
-        const player = room.players.get(socket.id);
-        leaveRoom(socket.id);
-        socket.to(room.code).emit(EVENTS.PLAYER_LEFT, {
-          playerId: socket.id,
-          playerName: player?.name,
+      if (!room) return;
+
+      const code = room.code;
+      const player = room.players.get(socket.id);
+      const playerName = player?.name;
+      const wasHost = room.getHost()?.id === socket.id;
+      const wasImposter = player?.role === 'imposter';
+      const phase = room.phase;
+      const wasCurrentCluePlayer = phase === PHASE.CLUE_INPUT && room.getCurrentCluePlayerId() === socket.id;
+
+      socket.to(code).emit(EVENTS.PLAYER_LEFT, {
+        playerId: socket.id,
+        playerName,
+      });
+      leaveRoom(socket.id);
+
+      const roomStill = getRoom(code);
+      if (!roomStill) return;
+
+      roomStill._io = io;
+
+      if (phase === PHASE.LOBBY) {
+        roomStill.getPlayerList().forEach((p) => {
+          io.to(p.id).emit(EVENTS.GAME_STATE, roomStill.getPublicState(p.id));
+        });
+        return;
+      }
+
+      if (roomStill.activeCount < 3) {
+        endGameAndShowLeaderboard(roomStill, io);
+        return;
+      }
+
+      if (wasImposter && !roomStill.getActivePlayerList().some((p) => p.role === 'imposter')) {
+        endGameAndShowLeaderboard(roomStill, io);
+        return;
+      }
+
+      if (phase === PHASE.CLUE_INPUT && wasCurrentCluePlayer) {
+        clearPhaseTimeout(code);
+        roomStill.skipClueTurn();
+        scheduleClueTurnOrDiscussion(roomStill, io);
+        return;
+      }
+
+      if (phase === PHASE.DISCUSSION) {
+        if (roomStill.roundData?.votes) delete roomStill.roundData.votes[socket.id];
+        roomStill.getPlayerList().forEach((p) => {
+          io.to(p.id).emit(EVENTS.GAME_STATE, roomStill.getPublicState(p.id));
+        });
+        io.to(code).emit(EVENTS.VOTERS_UPDATED, {
+          votedPlayerIds: Object.keys(roomStill.roundData?.votes || {}),
+        });
+        if (roomStill.allVotesIn()) {
+          clearDiscussionTimers(code);
+          clearPhaseTimeout(code);
+          roomStill.tallyVotes();
+          roomStill.awardPoints();
+          proceedToRoundResults(roomStill, io);
+        } else {
+          broadcastVotersAndMaybeHurryUp(roomStill, io);
+        }
+      } else {
+        roomStill.getPlayerList().forEach((p) => {
+          io.to(p.id).emit(EVENTS.GAME_STATE, roomStill.getPublicState(p.id));
         });
       }
     });
