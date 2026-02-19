@@ -570,13 +570,23 @@ export function registerSocketHandlers(io) {
       if (room) {
         const code = room.code;
         const player = room.players.get(socket.id);
+        const playerName = player?.name ?? 'A player';
+        const systemMsg = {
+          playerId: null,
+          name: null,
+          message: `${playerName} left the game.`,
+          timestamp: Date.now(),
+          system: true,
+        };
+        room.chatHistory.push(systemMsg);
+        socket.to(code).emit(EVENTS.CHAT_MESSAGE, systemMsg);
+        socket.to(code).emit(EVENTS.PLAYER_LEFT, {
+          playerId: socket.id,
+          playerName,
+        });
         socket.leave(code);
         leaveRoom(socket.id);
         socket.emit(EVENTS.ROOM_LEFT);
-        io.to(code).emit(EVENTS.PLAYER_LEFT, {
-          playerId: socket.id,
-          playerName: player?.name,
-        });
       }
     });
 
@@ -607,6 +617,15 @@ export function registerSocketHandlers(io) {
       const phase = room.phase;
       const wasCurrentCluePlayer = phase === PHASE.CLUE_INPUT && room.getCurrentCluePlayerId() === socket.id;
 
+      const systemMsg = {
+        playerId: null,
+        name: null,
+        message: `${playerName ?? 'A player'} disconnected.`,
+        timestamp: Date.now(),
+        system: true,
+      };
+      room.chatHistory.push(systemMsg);
+      io.to(code).emit(EVENTS.CHAT_MESSAGE, systemMsg);
       socket.to(code).emit(EVENTS.PLAYER_LEFT, {
         playerId: socket.id,
         playerName,

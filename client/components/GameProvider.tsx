@@ -56,7 +56,7 @@ export interface GameState {
   };
   currentCluePlayerId?: string;
   currentCluePlayerName?: string;
-  chatHistory: { playerId: string; name: string; message: string; timestamp: number }[];
+  chatHistory: { playerId: string | null; name: string | null; message: string; timestamp: number; system?: boolean }[];
   timers?: { clueInput?: number; discussion?: number; voting?: number };
   /** 1 or 2 imposters when 6+ players (host choice); 3-5 players always use 1 */
   numberOfImposters?: 1 | 2;
@@ -219,7 +219,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }));
     });
 
-    socket.on(EVENTS.CHAT_MESSAGE, (msg: { playerId: string; name: string; message: string; timestamp: number }) => {
+    socket.on(EVENTS.CHAT_MESSAGE, (msg: { playerId: string | null; name: string | null; message: string; timestamp: number; system?: boolean }) => {
       setState((s) => ({
         ...s,
         chatHistory: [...s.chatHistory, msg],

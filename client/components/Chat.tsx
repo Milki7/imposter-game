@@ -39,7 +39,14 @@ export function Chat({ frozen = false }: ChatProps) {
         {state.chatHistory.length === 0 ? (
           <p className="text-white/40 text-sm">No messages yet.</p>
         ) : (
-          state.chatHistory.map((m) => {
+          state.chatHistory.map((m, i) => {
+            if (m.system || m.playerId == null) {
+              return (
+                <div key={`system-${m.timestamp}-${i}`} className="text-sm text-white/50 italic">
+                  — {m.message}
+                </div>
+              );
+            }
             const avatar = state.players.find((p) => p.id === m.playerId)?.avatar ?? '👤';
             return (
               <div key={`${m.playerId}-${m.timestamp}`} className="text-sm flex items-center gap-2">
