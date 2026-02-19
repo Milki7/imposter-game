@@ -73,6 +73,8 @@ export interface GameState {
   discussionSecondsRemaining?: number | null;
   /** Server-authoritative voting phase countdown (seconds left); null when not in voting phase */
   votingSecondsRemaining?: number | null;
+  /** Why the game ended, e.g. 'imposter_fled' when last imposter disconnected */
+  gameEndReason?: string;
 }
 
 interface GameContextValue {
@@ -238,13 +240,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({ ...s, phase: 'final_leaderboard' }));
     });
 
-    socket.on(EVENTS.LEADERBOARD, (data: { leaderboard?: GameState['leaderboard']; finalWord?: string; finalImposterName?: string; finalImposterNames?: string[] }) => {
+    socket.on(EVENTS.LEADERBOARD, (data: { leaderboard?: GameState['leaderboard']; finalWord?: string; finalImposterName?: string; finalImposterNames?: string[]; gameEndReason?: string }) => {
       setState((s) => ({
         ...s,
         leaderboard: data?.leaderboard ?? s.leaderboard,
         finalWord: data?.finalWord,
         finalImposterName: data?.finalImposterName,
         finalImposterNames: data?.finalImposterNames,
+        gameEndReason: data?.gameEndReason,
         phase: 'final_leaderboard',
       }));
     });

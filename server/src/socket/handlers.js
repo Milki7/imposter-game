@@ -343,8 +343,9 @@ function runGameLoop(room, io) {
  * End game and show final leaderboard (e.g. disconnect with no imposters or too few players).
  * @param {Room} room
  * @param {Server} io
+ * @param {string} [gameEndReason] - e.g. 'imposter_fled' when last imposter disconnected
  */
-function endGameAndShowLeaderboard(room, io) {
+function endGameAndShowLeaderboard(room, io, gameEndReason) {
   const code = room.code;
   clearDiscussionTimers(code);
   clearPhaseTimeout(code);
@@ -358,6 +359,7 @@ function endGameAndShowLeaderboard(room, io) {
     finalWord: finalWord || undefined,
     finalImposterName: finalImposterNames[0] ?? undefined,
     finalImposterNames: finalImposterNames.length > 0 ? finalImposterNames : undefined,
+    gameEndReason: gameEndReason || undefined,
   });
 }
 
@@ -653,7 +655,7 @@ export function registerSocketHandlers(io) {
       }
 
       if (wasImposter && !roomStill.getActivePlayerList().some((p) => p.role === 'imposter')) {
-        endGameAndShowLeaderboard(roomStill, io);
+        endGameAndShowLeaderboard(roomStill, io, 'imposter_fled');
         return;
       }
 
@@ -666,6 +668,9 @@ export function registerSocketHandlers(io) {
 
       if (phase === PHASE.DISCUSSION) {
         if (roomStill.roundData?.votes) delete roomStill.roundData.votes[socket.id];
+        if (Array.isArray(roomStill.roundData?.readyPlayerIds)) {
+          roomStill.roundData.readyPlayerIds = roomStill.roundData.readyPlayerIds.filter((id) => id !== socket.id);
+        }
         roomStill.getPlayerList().forEach((p) => {
           io.to(p.id).emit(EVENTS.GAME_STATE, roomStill.getPublicState(p.id));
         });

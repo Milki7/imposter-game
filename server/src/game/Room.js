@@ -141,6 +141,7 @@ export class Room {
   }
 
   /**
+   * Remove a player. Host migration: if the host leaves, the next player in the list becomes host.
    * @param {string} id
    */
   removePlayer(id) {

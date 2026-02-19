@@ -21,10 +21,18 @@ export function FinalLeaderboardScreen() {
     setQuitModalOpen(false);
   };
 
+  const imposterFled = state.gameEndReason === 'imposter_fled';
+
   return (
     <div className="w-full max-w-lg mx-auto screen-card p-8 animate-slide-up">
       <h2 className="text-2xl font-bold text-center mb-6">Final Leaderboard</h2>
-      {(finalWord != null || finalImposterNames.length > 0) && (
+      {imposterFled && (
+        <div className="mb-6 p-5 rounded-xl bg-innocent/20 border-2 border-innocent text-center">
+          <p className="text-innocent font-bold text-lg">The Imposter fled!</p>
+          <p className="text-white/90 mt-1">Innocents win by default.</p>
+        </div>
+      )}
+      {(finalWord != null || finalImposterNames.length > 0) && !imposterFled && (
         <div className="mb-6 p-4 rounded-xl bg-white/10 border border-white/20 space-y-2">
           {finalImposterNames.length > 0 && (
             <p className="text-imposter font-semibold">
