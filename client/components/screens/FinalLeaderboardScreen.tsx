@@ -1,14 +1,25 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGame } from '@/components/GameProvider';
+import { QuitConfirmationModal } from '@/components/QuitConfirmationModal';
 
 export function FinalLeaderboardScreen() {
   const { state, restartGame, leaveRoom, socketId } = useGame();
+  const router = useRouter();
+  const [quitModalOpen, setQuitModalOpen] = useState(false);
   const leaderboard = state.leaderboard ?? [];
   const winner = leaderboard[0];
   const isHost = state.hostId === socketId;
   const finalWord = state.finalWord;
   const finalImposterNames = state.finalImposterNames ?? (state.finalImposterName ? [state.finalImposterName] : []);
+
+  const handleQuitConfirm = () => {
+    leaveRoom();
+    router.push('/');
+    setQuitModalOpen(false);
+  };
 
   return (
     <div className="w-full max-w-lg mx-auto screen-card p-8 animate-slide-up">
@@ -56,10 +67,15 @@ export function FinalLeaderboardScreen() {
             Restart Game
           </button>
         )}
-        <button onClick={leaveRoom} className="btn-secondary w-full py-3">
+        <button onClick={() => setQuitModalOpen(true)} className="btn-secondary w-full py-3">
           Quit
         </button>
       </div>
+      <QuitConfirmationModal
+        isOpen={quitModalOpen}
+        onClose={() => setQuitModalOpen(false)}
+        onConfirm={handleQuitConfirm}
+      />
       <p className="text-white/40 text-sm text-center mt-4">Thanks for playing!</p>
     </div>
   );

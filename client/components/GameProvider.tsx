@@ -347,7 +347,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const leaveRoom = useCallback(() => {
-    socket.emit(EVENTS.LEAVE_ROOM);
+    socket.emit(EVENTS.PLAYER_QUIT);
   }, [socket]);
 
   const restartGame = useCallback(() => {

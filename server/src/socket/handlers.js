@@ -565,7 +565,7 @@ export function registerSocketHandlers(io) {
       socket.emit(EVENTS.IMPOSTER_GUESS_RESULT, { correct });
     });
 
-    socket.on(EVENTS.LEAVE_ROOM, () => {
+    const handleLeaveOrQuit = () => {
       const room = getRoomByPlayer(socket.id);
       if (room) {
         const code = room.code;
@@ -588,7 +588,10 @@ export function registerSocketHandlers(io) {
         leaveRoom(socket.id);
         socket.emit(EVENTS.ROOM_LEFT);
       }
-    });
+    };
+
+    socket.on(EVENTS.LEAVE_ROOM, handleLeaveOrQuit);
+    socket.on(EVENTS.PLAYER_QUIT, handleLeaveOrQuit);
 
     socket.on(EVENTS.RESTART_GAME, () => {
       const room = getRoomByPlayer(socket.id);

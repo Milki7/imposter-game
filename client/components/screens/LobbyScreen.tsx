@@ -1,12 +1,23 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGame } from '@/components/GameProvider';
 import { Chat } from '@/components/Chat';
+import { QuitConfirmationModal } from '@/components/QuitConfirmationModal';
 
 export function LobbyScreen() {
   const { state, startGame, updateSettings, leaveRoom, socketId } = useGame();
+  const router = useRouter();
+  const [quitModalOpen, setQuitModalOpen] = useState(false);
   const isHost = state.hostId === socketId;
   const canStart = state.players.length >= 3 && state.players.length <= 8;
+
+  const handleQuitConfirm = () => {
+    leaveRoom();
+    router.push('/');
+    setQuitModalOpen(false);
+  };
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full">
@@ -130,10 +141,15 @@ export function LobbyScreen() {
             Start Game
           </button>
         )}
-        <button onClick={leaveRoom} className="btn-secondary w-full py-3 mt-2">
+        <button onClick={() => setQuitModalOpen(true)} className="btn-secondary w-full py-3 mt-2">
           Quit
         </button>
       </div>
+      <QuitConfirmationModal
+        isOpen={quitModalOpen}
+        onClose={() => setQuitModalOpen(false)}
+        onConfirm={handleQuitConfirm}
+      />
       </div>
       <aside className="w-full lg:w-72 flex-shrink-0 flex flex-col min-h-0">
         <Chat />
