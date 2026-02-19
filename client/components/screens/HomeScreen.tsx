@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGame } from '@/components/GameProvider';
+import { QuitConfirmationModal } from '@/components/QuitConfirmationModal';
 import { LobbyScreen } from './LobbyScreen';
 import { RoleRevealScreen } from './RoleRevealScreen';
 import { ClueInputScreen } from './ClueInputScreen';
@@ -11,30 +13,59 @@ import { ImposterLastChanceScreen } from './ImposterLastChanceScreen';
 import { FinalLeaderboardScreen } from './FinalLeaderboardScreen';
 
 export function HomeScreen() {
-  const { inRoom, state } = useGame();
+  const { inRoom, state, leaveRoom } = useGame();
+  const router = useRouter();
+  const [quitModalOpen, setQuitModalOpen] = useState(false);
+
+  const handleQuitConfirm = () => {
+    leaveRoom();
+    router.push('/');
+    setQuitModalOpen(false);
+  };
 
   if (!inRoom) {
     return <CreateOrJoinScreen />;
   }
 
-  switch (state.phase) {
-    case 'lobby':
-      return <LobbyScreen />;
-    case 'role_reveal':
-      return <RoleRevealScreen />;
-    case 'clue_input':
-      return <ClueInputScreen />;
-    case 'discussion':
-      return <DiscussionScreen />;
-    case 'round_results':
-      return <RoundResultsScreen />;
-    case 'imposter_last_chance':
-      return <ImposterLastChanceScreen />;
-    case 'final_leaderboard':
-      return <FinalLeaderboardScreen />;
-    default:
-      return <LobbyScreen />;
-  }
+  const GameContent = () => {
+    switch (state.phase) {
+      case 'lobby':
+        return <LobbyScreen />;
+      case 'role_reveal':
+        return <RoleRevealScreen />;
+      case 'clue_input':
+        return <ClueInputScreen />;
+      case 'discussion':
+        return <DiscussionScreen />;
+      case 'round_results':
+        return <RoundResultsScreen />;
+      case 'imposter_last_chance':
+        return <ImposterLastChanceScreen />;
+      case 'final_leaderboard':
+        return <FinalLeaderboardScreen />;
+      default:
+        return <LobbyScreen />;
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setQuitModalOpen(true)}
+        className="fixed top-4 right-4 z-40 py-2 px-4 rounded-lg text-sm font-medium bg-white/10 text-white/90 border border-white/20 hover:bg-white/15 transition-colors"
+        aria-label="Quit game"
+      >
+        Quit
+      </button>
+      <QuitConfirmationModal
+        isOpen={quitModalOpen}
+        onClose={() => setQuitModalOpen(false)}
+        onConfirm={handleQuitConfirm}
+      />
+      <GameContent />
+    </>
+  );
 }
 
 function CreateOrJoinScreen() {
