@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGame } from '@/components/GameProvider';
 import { Chat } from '@/components/Chat';
@@ -12,6 +12,33 @@ export function LobbyScreen() {
   const [quitModalOpen, setQuitModalOpen] = useState(false);
   const isHost = state.hostId === socketId;
   const canStart = state.players.length >= 3 && state.players.length <= 8;
+
+  const [localRounds, setLocalRounds] = useState(state.totalRounds ?? 5);
+  const [localClueInput, setLocalClueInput] = useState(state.timers?.clueInput ?? 30);
+  const [localDiscussion, setLocalDiscussion] = useState(state.timers?.discussion ?? 120);
+  const [localVoting, setLocalVoting] = useState(state.timers?.voting ?? 30);
+
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedUpdate = useCallback((settings: Parameters<typeof updateSettings>[0]) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      updateSettings(settings);
+    }, 300);
+  }, [updateSettings]);
+
+  useEffect(() => {
+    setLocalRounds(state.totalRounds ?? 5);
+    setLocalClueInput(state.timers?.clueInput ?? 30);
+    setLocalDiscussion(state.timers?.discussion ?? 120);
+    setLocalVoting(state.timers?.voting ?? 30);
+  }, [state.totalRounds, state.timers?.clueInput, state.timers?.discussion, state.timers?.voting]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const handleQuitConfirm = () => {
     leaveRoom();
@@ -74,46 +101,62 @@ export function LobbyScreen() {
         {isHost && (
           <div className="mb-4 p-3 rounded-xl bg-white/5 text-sm space-y-3">
             <div>
-              <label className="block text-white/80 mb-1">Rounds: {state.totalRounds ?? 5}</label>
+              <label className="block text-white/80 mb-1">Rounds: {localRounds}</label>
               <input
                 type="range"
                 min={1}
                 max={10}
-                value={state.totalRounds ?? 5}
-                onChange={(e) => updateSettings({ totalRounds: parseInt(e.target.value, 10) })}
+                value={localRounds}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setLocalRounds(val);
+                  debouncedUpdate({ totalRounds: val });
+                }}
                 className="w-full"
               />
             </div>
             <div>
-              <label className="block text-white/80 mb-1">Clue timer: {(state.timers?.clueInput ?? 30)}s</label>
+              <label className="block text-white/80 mb-1">Clue timer: {localClueInput}s</label>
               <input
                 type="range"
                 min={10}
                 max={90}
-                value={state.timers?.clueInput ?? 30}
-                onChange={(e) => updateSettings({ clueInput: parseInt(e.target.value, 10) })}
+                value={localClueInput}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setLocalClueInput(val);
+                  debouncedUpdate({ clueInput: val });
+                }}
                 className="w-full"
               />
             </div>
             <div>
-              <label className="block text-white/80 mb-1">Discussion: {(state.timers?.discussion ?? 120)}s</label>
+              <label className="block text-white/80 mb-1">Discussion: {localDiscussion}s</label>
               <input
                 type="range"
                 min={30}
                 max={180}
-                value={state.timers?.discussion ?? 120}
-                onChange={(e) => updateSettings({ discussion: parseInt(e.target.value, 10) })}
+                value={localDiscussion}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setLocalDiscussion(val);
+                  debouncedUpdate({ discussion: val });
+                }}
                 className="w-full"
               />
             </div>
             <div>
-              <label className="block text-white/80 mb-1">Voting: {(state.timers?.voting ?? 30)}s</label>
+              <label className="block text-white/80 mb-1">Voting: {localVoting}s</label>
               <input
                 type="range"
                 min={15}
                 max={60}
-                value={state.timers?.voting ?? 30}
-                onChange={(e) => updateSettings({ voting: parseInt(e.target.value, 10) })}
+                value={localVoting}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setLocalVoting(val);
+                  debouncedUpdate({ voting: val });
+                }}
                 className="w-full"
               />
             </div>

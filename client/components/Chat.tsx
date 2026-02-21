@@ -1,28 +1,36 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
-import { useGame } from '@/components/GameProvider';
+import { useRef, useEffect, useState, memo, useCallback } from 'react';
+import { useGame, useChat } from '@/components/GameProvider';
 
 interface ChatProps {
   frozen?: boolean;
 }
 
-export function Chat({ frozen = false }: ChatProps) {
-  const { state, sendChatMessage } = useGame();
+export const Chat = memo(function Chat({ frozen = false }: ChatProps) {
+  const { sendChatMessage } = useGame();
+  const { chatHistory, players } = useChat();
   const [input, setInput] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
+  const sendChatRef = useRef(sendChatMessage);
+  sendChatRef.current = sendChatMessage;
 
   useEffect(() => {
     listRef.current?.scrollTo(0, listRef.current.scrollHeight);
-  }, [state.chatHistory]);
+  }, [chatHistory]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!frozen && input.trim()) {
-      sendChatMessage(input.trim());
+    const trimmed = input.trim();
+    if (!frozen && trimmed) {
+      sendChatRef.current(trimmed);
       setInput('');
     }
-  };
+  }, [frozen, input]);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value.slice(0, 200));
+  }, []);
 
   return (
     <div className="screen-card flex flex-col flex-1 min-h-[200px] max-h-[280px]">
@@ -36,10 +44,10 @@ export function Chat({ frozen = false }: ChatProps) {
         ref={listRef}
         className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0"
       >
-        {state.chatHistory.length === 0 ? (
+        {chatHistory.length === 0 ? (
           <p className="text-white/40 text-sm">No messages yet.</p>
         ) : (
-          state.chatHistory.map((m, i) => {
+          chatHistory.map((m, i) => {
             if (m.system || m.playerId == null) {
               return (
                 <div key={`system-${m.timestamp}-${i}`} className="text-sm text-white/50 italic">
@@ -47,7 +55,7 @@ export function Chat({ frozen = false }: ChatProps) {
                 </div>
               );
             }
-            const avatar = state.players.find((p) => p.id === m.playerId)?.avatar ?? '👤';
+            const avatar = players.find((p) => p.id === m.playerId)?.avatar ?? '👤';
             return (
               <div key={`${m.playerId}-${m.timestamp}`} className="text-sm flex items-center gap-2">
                 <span className="text-lg flex-shrink-0">{avatar}</span>
@@ -67,7 +75,7 @@ export function Chat({ frozen = false }: ChatProps) {
           <input
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value.slice(0, 200))}
+            onChange={handleInputChange}
             placeholder="Type a message..."
             maxLength={200}
             className="input-field flex-1 py-2 text-sm"
@@ -79,4 +87,4 @@ export function Chat({ frozen = false }: ChatProps) {
       )}
     </div>
   );
-}
+});

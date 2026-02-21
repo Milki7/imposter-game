@@ -6,6 +6,8 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
+  useMemo,
 } from 'react';
 import { getSocket } from '@/lib/socket';
 import { EVENTS } from '@/lib/events';
@@ -70,10 +72,6 @@ export interface GameState {
   finalImposterNames?: string[];
   ejectedPlayerIds?: string[];
   discussionTimeUp?: boolean;
-  /** Server-authoritative discussion countdown (seconds left); null when not in discussion or after time up */
-  discussionSecondsRemaining?: number | null;
-  /** Server-authoritative voting phase countdown (seconds left); null when not in voting phase */
-  votingSecondsRemaining?: number | null;
   /** Why the game ended, e.g. 'imposter_fled' when last imposter disconnected */
   gameEndReason?: string;
   /** Updated vote requirements when player count changes */
@@ -83,6 +81,8 @@ export interface GameState {
     activePlayerCount: number;
   };
 }
+
+type ChatMessage = { playerId: string | null; name: string | null; message: string; timestamp: number; system?: boolean };
 
 interface GameContextValue {
   state: GameState;
@@ -106,6 +106,16 @@ interface GameContextValue {
   dismissToast: (id: string) => void;
 }
 
+interface TimerContextValue {
+  discussionSeconds: number | null;
+  votingSeconds: number | null;
+}
+
+interface ChatContextValue {
+  chatHistory: ChatMessage[];
+  players: Player[];
+}
+
 const initialState: GameState = {
   phase: 'lobby',
   players: [],
@@ -113,6 +123,8 @@ const initialState: GameState = {
 };
 
 const GameContext = createContext<GameContextValue | null>(null);
+const TimerContext = createContext<TimerContextValue>({ discussionSeconds: null, votingSeconds: null });
+const ChatContext = createContext<ChatContextValue>({ chatHistory: [], players: [] });
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(initialState);
@@ -121,11 +133,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [imposterGuessResult, setImposterGuessResult] = useState<boolean | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [discussionSeconds, setDiscussionSeconds] = useState<number | null>(null);
+  const [votingSeconds, setVotingSeconds] = useState<number | null>(null);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [socket] = useState(() => getSocket());
+  const toastsRef = useRef(setToasts);
+  toastsRef.current = setToasts;
 
   const addToast = useCallback((message: string, type: ToastMessage['type'], avatar?: string) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    setToasts((prev) => [...prev, { id, message, type, avatar }]);
+    toastsRef.current((prev) => [...prev, { id, message, type, avatar }]);
   }, []);
 
   const dismissToast = useCallback((id: string) => {
@@ -137,13 +154,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     socket.on(EVENTS.DISCONNECT, () => setSocketId(null));
 
     socket.on(EVENTS.ROOM_CREATED, (data: { code: string; state: GameState }) => {
-      setState(data.state);
+      const { chatHistory: newChatHistory, ...restState } = data.state;
+      setState({ ...restState, chatHistory: [] });
+      setChatHistory(newChatHistory || []);
       setInRoom(true);
       setError(null);
     });
 
     socket.on(EVENTS.ROOM_JOINED, (data: { state: GameState }) => {
-      setState(data.state);
+      const { chatHistory: newChatHistory, ...restState } = data.state;
+      setState({ ...restState, chatHistory: [] });
+      setChatHistory(newChatHistory || []);
       setInRoom(true);
       setError(null);
     });
@@ -178,12 +199,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     socket.on(EVENTS.GAME_STARTED, () => {});
 
     socket.on(EVENTS.PHASE_CHANGED, (data: { phase: Phase }) => {
+      setDiscussionSeconds(null);
+      setVotingSeconds(null);
       setState((s) => ({
         ...s,
         phase: data.phase,
         discussionTimeUp: false,
-        discussionSecondsRemaining: null,
-        votingSecondsRemaining: null,
       }));
       if (data.phase === 'imposter_last_chance') {
         setImposterGuessResult(null);
@@ -191,15 +212,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
 
     socket.on(EVENTS.DISCUSSION_TICK, (data: { secondsRemaining: number }) => {
-      setState((s) =>
-        s.phase === 'discussion' ? { ...s, discussionSecondsRemaining: data.secondsRemaining } : s
-      );
+      setDiscussionSeconds(data.secondsRemaining);
     });
 
     socket.on(EVENTS.DISCUSSION_TIME_UP, () => {
+      setDiscussionSeconds(0);
       setState((s) =>
         s.phase === 'discussion'
-          ? { ...s, discussionTimeUp: true, discussionSecondsRemaining: 0 }
+          ? { ...s, discussionTimeUp: true }
           : s
       );
     });
@@ -213,21 +233,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
 
     socket.on(EVENTS.DISCUSSION_SKIPPED, (data: { secondsRemaining: number }) => {
-      setState((s) =>
-        s.phase === 'discussion'
-          ? { ...s, discussionSecondsRemaining: data.secondsRemaining }
-          : s
-      );
+      setDiscussionSeconds(data.secondsRemaining);
     });
 
     socket.on(EVENTS.VOTING_TICK, (data: { secondsRemaining: number }) => {
-      setState((s) =>
-        s.phase === 'discussion' ? { ...s, votingSecondsRemaining: data.secondsRemaining } : s
-      );
+      setVotingSeconds(data.secondsRemaining);
     });
 
     socket.on(EVENTS.GAME_STATE, (newState: GameState) => {
-      setState(newState);
+      const { chatHistory: newChatHistory, ...restState } = newState;
+      setState({ ...restState, chatHistory: [] });
+      if (newChatHistory) {
+        setChatHistory(newChatHistory);
+      }
     });
 
     socket.on(EVENTS.VOTERS_UPDATED, (data: { votedPlayerIds: string[] }) => {
@@ -240,11 +258,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }));
     });
 
-    socket.on(EVENTS.CHAT_MESSAGE, (msg: { playerId: string | null; name: string | null; message: string; timestamp: number; system?: boolean }) => {
-      setState((s) => ({
-        ...s,
-        chatHistory: [...s.chatHistory, msg],
-      }));
+    socket.on(EVENTS.CHAT_MESSAGE, (msg: ChatMessage) => {
+      setChatHistory((prev) => [...prev, msg]);
     });
 
     socket.on(EVENTS.ROUND_RESULTS, (data: { leaderboard?: GameState['leaderboard']; roundData?: GameState['roundData'] }) => {
@@ -273,6 +288,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     socket.on(EVENTS.ROOM_LEFT, () => {
       setState(initialState);
+      setChatHistory([]);
       setInRoom(false);
       setImposterGuessResult(null);
     });
@@ -285,7 +301,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     socket.on(EVENTS.PLAYER_EXIT, (data: { playerName: string; playerAvatar?: string; reason: 'quit' | 'disconnect' }) => {
       const action = data.reason === 'quit' ? 'left the game' : 'disconnected';
-      addToast(`${data.playerName} ${action}`, 'warning', data.playerAvatar);
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      toastsRef.current((prev) => [...prev, { id, message: `${data.playerName} ${action}`, type: 'warning' as const, avatar: data.playerAvatar }]);
     });
 
     socket.on(EVENTS.VOTE_REQUIREMENTS_UPDATED, (data: { requiredVotes: number; currentVotes: number; activePlayerCount: number }) => {
@@ -327,7 +344,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off(EVENTS.PLAYER_EXIT);
       socket.off(EVENTS.VOTE_REQUIREMENTS_UPDATED);
     };
-  }, [socket, addToast]);
+  }, [socket]);
 
   const createRoom = useCallback(
     (name: string) => {
@@ -396,7 +413,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  const value: GameContextValue = {
+  const value: GameContextValue = useMemo(() => ({
     state,
     socketId,
     createRoom,
@@ -416,13 +433,59 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     imposterGuessResult,
     toasts,
     dismissToast,
-  };
+  }), [
+    state,
+    socketId,
+    createRoom,
+    joinRoom,
+    startGame,
+    submitClue,
+    sendChatMessage,
+    submitVote,
+    submitDiscussionReady,
+    imposterGuess,
+    updateSettings,
+    leaveRoom,
+    restartGame,
+    inRoom,
+    error,
+    clearError,
+    imposterGuessResult,
+    toasts,
+    dismissToast,
+  ]);
 
-  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
+  const timerValue: TimerContextValue = useMemo(() => ({
+    discussionSeconds,
+    votingSeconds,
+  }), [discussionSeconds, votingSeconds]);
+
+  const chatValue: ChatContextValue = useMemo(() => ({
+    chatHistory,
+    players: state.players,
+  }), [chatHistory, state.players]);
+
+  return (
+    <GameContext.Provider value={value}>
+      <TimerContext.Provider value={timerValue}>
+        <ChatContext.Provider value={chatValue}>
+          {children}
+        </ChatContext.Provider>
+      </TimerContext.Provider>
+    </GameContext.Provider>
+  );
 }
 
 export function useGame() {
   const ctx = useContext(GameContext);
   if (!ctx) throw new Error('useGame must be used within GameProvider');
   return ctx;
+}
+
+export function useTimers() {
+  return useContext(TimerContext);
+}
+
+export function useChat() {
+  return useContext(ChatContext);
 }
