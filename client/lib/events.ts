@@ -41,4 +41,6 @@ export const EVENTS = {
   IMPOSTER_GUESS_RESULT: 'game:imposter_guess_result',
   GAME_OVER: 'game:over',
   LEADERBOARD: 'game:leaderboard',
+  PLAYER_EXIT: 'game:player_exit',
+  VOTE_REQUIREMENTS_UPDATED: 'game:vote_requirements_updated',
 } as const;

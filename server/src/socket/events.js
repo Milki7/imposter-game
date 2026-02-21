@@ -57,4 +57,10 @@ export const EVENTS = {
   // Final
   GAME_OVER: 'game:over',
   LEADERBOARD: 'game:leaderboard',
+
+  // Player exit notification (for toast)
+  PLAYER_EXIT: 'game:player_exit',
+
+  // Vote requirements updated (when player count changes)
+  VOTE_REQUIREMENTS_UPDATED: 'game:vote_requirements_updated',
 };

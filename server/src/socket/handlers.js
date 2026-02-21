@@ -573,6 +573,7 @@ export function registerSocketHandlers(io) {
         const code = room.code;
         const player = room.players.get(socket.id);
         const playerName = player?.name ?? 'A player';
+        const playerAvatar = player?.avatar ?? '👤';
         const systemMsg = {
           playerId: null,
           name: null,
@@ -585,6 +586,11 @@ export function registerSocketHandlers(io) {
         socket.to(code).emit(EVENTS.PLAYER_LEFT, {
           playerId: socket.id,
           playerName,
+        });
+        socket.to(code).emit(EVENTS.PLAYER_EXIT, {
+          playerName,
+          playerAvatar,
+          reason: 'quit',
         });
         socket.leave(code);
         leaveRoom(socket.id);
@@ -616,7 +622,8 @@ export function registerSocketHandlers(io) {
 
       const code = room.code;
       const player = room.players.get(socket.id);
-      const playerName = player?.name;
+      const playerName = player?.name ?? 'A player';
+      const playerAvatar = player?.avatar ?? '👤';
       const wasHost = room.getHost()?.id === socket.id;
       const wasImposter = player?.role === 'imposter';
       const phase = room.phase;
@@ -625,7 +632,7 @@ export function registerSocketHandlers(io) {
       const systemMsg = {
         playerId: null,
         name: null,
-        message: `${playerName ?? 'A player'} disconnected.`,
+        message: `${playerName} disconnected.`,
         timestamp: Date.now(),
         system: true,
       };
@@ -634,6 +641,11 @@ export function registerSocketHandlers(io) {
       socket.to(code).emit(EVENTS.PLAYER_LEFT, {
         playerId: socket.id,
         playerName,
+      });
+      socket.to(code).emit(EVENTS.PLAYER_EXIT, {
+        playerName,
+        playerAvatar,
+        reason: 'disconnect',
       });
       leaveRoom(socket.id);
 
@@ -674,8 +686,15 @@ export function registerSocketHandlers(io) {
         roomStill.getPlayerList().forEach((p) => {
           io.to(p.id).emit(EVENTS.GAME_STATE, roomStill.getPublicState(p.id));
         });
+        const activeCount = roomStill.getActivePlayerList().length;
+        const votedCount = Object.keys(roomStill.roundData?.votes || {}).length;
         io.to(code).emit(EVENTS.VOTERS_UPDATED, {
           votedPlayerIds: Object.keys(roomStill.roundData?.votes || {}),
+        });
+        io.to(code).emit(EVENTS.VOTE_REQUIREMENTS_UPDATED, {
+          requiredVotes: activeCount,
+          currentVotes: votedCount,
+          activePlayerCount: activeCount,
         });
         if (roomStill.allVotesIn()) {
           clearDiscussionTimers(code);

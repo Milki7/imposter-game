@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGame } from '@/components/GameProvider';
 import { QuitConfirmationModal } from '@/components/QuitConfirmationModal';
+import { ToastContainer } from '@/components/Toast';
 import { LobbyScreen } from './LobbyScreen';
 import { RoleRevealScreen } from './RoleRevealScreen';
 import { ClueInputScreen } from './ClueInputScreen';
@@ -13,7 +14,7 @@ import { ImposterLastChanceScreen } from './ImposterLastChanceScreen';
 import { FinalLeaderboardScreen } from './FinalLeaderboardScreen';
 
 export function HomeScreen() {
-  const { inRoom, state, leaveRoom } = useGame();
+  const { inRoom, state, leaveRoom, toasts, dismissToast } = useGame();
   const router = useRouter();
   const [quitModalOpen, setQuitModalOpen] = useState(false);
 
@@ -63,6 +64,7 @@ export function HomeScreen() {
         onClose={() => setQuitModalOpen(false)}
         onConfirm={handleQuitConfirm}
       />
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <GameContent />
     </>
   );

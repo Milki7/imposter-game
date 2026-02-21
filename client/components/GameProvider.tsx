@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { getSocket } from '@/lib/socket';
 import { EVENTS } from '@/lib/events';
+import { ToastMessage } from './Toast';
 
 export type Phase =
   | 'lobby'
@@ -75,6 +76,12 @@ export interface GameState {
   votingSecondsRemaining?: number | null;
   /** Why the game ended, e.g. 'imposter_fled' when last imposter disconnected */
   gameEndReason?: string;
+  /** Updated vote requirements when player count changes */
+  voteRequirements?: {
+    requiredVotes: number;
+    currentVotes: number;
+    activePlayerCount: number;
+  };
 }
 
 interface GameContextValue {
@@ -95,6 +102,8 @@ interface GameContextValue {
   error: string | null;
   clearError: () => void;
   imposterGuessResult: boolean | null;
+  toasts: ToastMessage[];
+  dismissToast: (id: string) => void;
 }
 
 const initialState: GameState = {
@@ -111,7 +120,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [inRoom, setInRoom] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imposterGuessResult, setImposterGuessResult] = useState<boolean | null>(null);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [socket] = useState(() => getSocket());
+
+  const addToast = useCallback((message: string, type: ToastMessage['type'], avatar?: string) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    setToasts((prev) => [...prev, { id, message, type, avatar }]);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   useEffect(() => {
     socket.on(EVENTS.CONNECT, () => setSocketId(socket.id ?? null));
@@ -264,6 +283,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setImposterGuessResult(data?.correct ?? false);
     });
 
+    socket.on(EVENTS.PLAYER_EXIT, (data: { playerName: string; playerAvatar?: string; reason: 'quit' | 'disconnect' }) => {
+      const action = data.reason === 'quit' ? 'left the game' : 'disconnected';
+      addToast(`${data.playerName} ${action}`, 'warning', data.playerAvatar);
+    });
+
+    socket.on(EVENTS.VOTE_REQUIREMENTS_UPDATED, (data: { requiredVotes: number; currentVotes: number; activePlayerCount: number }) => {
+      setState((s) => ({
+        ...s,
+        voteRequirements: {
+          requiredVotes: data.requiredVotes,
+          currentVotes: data.currentVotes,
+          activePlayerCount: data.activePlayerCount,
+        },
+      }));
+    });
+
     return () => {
       socket.off(EVENTS.CONNECT);
       socket.off(EVENTS.DISCONNECT);
@@ -289,8 +324,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off(EVENTS.ROOM_LEFT);
       socket.off(EVENTS.GAME_RESTARTED);
       socket.off(EVENTS.IMPOSTER_GUESS_RESULT);
+      socket.off(EVENTS.PLAYER_EXIT);
+      socket.off(EVENTS.VOTE_REQUIREMENTS_UPDATED);
     };
-  }, [socket]);
+  }, [socket, addToast]);
 
   const createRoom = useCallback(
     (name: string) => {
@@ -377,6 +414,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     error,
     clearError,
     imposterGuessResult,
+    toasts,
+    dismissToast,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
