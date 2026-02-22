@@ -16,6 +16,14 @@ export function RoundResultsScreen() {
           <p className="font-semibold">No one was ejected (Skipped).</p>
           <p className="text-white/60 text-sm">{results.skipVotes ?? 0} vote(s) to skip</p>
         </div>
+      ) : results?.tied ? (
+        <div className="p-4 rounded-xl mb-4 bg-yellow-500/20 border-2 border-yellow-500/50">
+          <p className="text-yellow-400 font-bold text-sm uppercase tracking-wider mb-1">Vote Tie!</p>
+          <p className="font-semibold">No one was ejected.</p>
+          <p className="text-white/70 text-sm mt-1">
+            {results.tiedPlayerNames?.join(' & ')} received equal votes ({results.maxVotes} each)
+          </p>
+        </div>
       ) : results?.ejectedId ? (
         <div className={`p-5 rounded-xl mb-4 ring-2 ring-imposter/80 ${results.wasImposter ? 'bg-imposter/25 border-2 border-imposter' : 'bg-white/15 border-2 border-white/30'}`}>
           <p className="text-imposter font-bold text-sm uppercase tracking-wider mb-1">Most votes — Ejected</p>

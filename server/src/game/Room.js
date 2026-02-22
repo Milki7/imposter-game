@@ -304,14 +304,18 @@ export class Room {
     const skipWins = skipVotes === maxVotes;
     const skipTies = skipVotes > 0 && skipVotes === maxPlayerVotes && ejected.length > 0;
     const skipped = skipWins || skipTies;
-    const ejectedId = skipped ? null : singleEjected?.id ?? null;
+    const tied = !skipped && ejected.length > 1;
+    const tiedPlayerNames = tied ? ejected.map((p) => p.name) : [];
+    const ejectedId = skipped || tied ? null : singleEjected?.id ?? null;
     this.roundData.voteResults = {
       ejectedId,
-      ejectedName: skipped ? null : singleEjected?.name ?? null,
-      wasImposter: skipped ? false : singleEjected?.role === 'imposter',
+      ejectedName: skipped || tied ? null : singleEjected?.name ?? null,
+      wasImposter: skipped || tied ? false : singleEjected?.role === 'imposter',
       maxVotes,
       skipVotes,
       skipped,
+      tied,
+      tiedPlayerNames,
     };
     if (ejectedId) this.ejectedPlayerIds.add(ejectedId);
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGame } from '@/components/GameProvider';
 import { QuitConfirmationModal } from '@/components/QuitConfirmationModal';
@@ -10,7 +10,6 @@ export function FinalLeaderboardScreen() {
   const router = useRouter();
   const [quitModalOpen, setQuitModalOpen] = useState(false);
   const leaderboard = state.leaderboard ?? [];
-  const winner = leaderboard[0];
   const isHost = state.hostId === socketId;
   const finalWord = state.finalWord;
   const finalImposterNames = state.finalImposterNames ?? (state.finalImposterName ? [state.finalImposterName] : []);
@@ -22,6 +21,27 @@ export function FinalLeaderboardScreen() {
   };
 
   const imposterFled = state.gameEndReason === 'imposter_fled';
+
+  const rankedLeaderboard = useMemo(() => {
+    const result: { player: typeof leaderboard[0]; rank: number; isTied: boolean }[] = [];
+    let currentRank = 1;
+    for (let i = 0; i < leaderboard.length; i++) {
+      const player = leaderboard[i];
+      const prevPlayer = leaderboard[i - 1];
+      const nextPlayer = leaderboard[i + 1];
+      const isTiedWithPrev = prevPlayer && prevPlayer.score === player.score;
+      const isTiedWithNext = nextPlayer && nextPlayer.score === player.score;
+      const isTied = isTiedWithPrev || isTiedWithNext;
+      if (i > 0 && !isTiedWithPrev) {
+        currentRank = i + 1;
+      }
+      result.push({ player, rank: currentRank, isTied });
+    }
+    return result;
+  }, [leaderboard]);
+
+  const winners = rankedLeaderboard.filter((r) => r.rank === 1);
+  const hasWinnerTie = winners.length > 1;
 
   return (
     <div className="w-full max-w-lg mx-auto screen-card p-8 animate-slide-up">
@@ -46,26 +66,36 @@ export function FinalLeaderboardScreen() {
           )}
         </div>
       )}
-      {winner && (
-        <div className="text-center mb-6 p-4 rounded-xl bg-imposter/20 border border-imposter">
-          <p className="text-4xl mb-2">🏆</p>
-          <p className="text-xl font-bold">{winner.name}</p>
-          <p className="text-white/80">{winner.score} points</p>
+      {winners.length > 0 && (
+        <div className={`text-center mb-6 p-4 rounded-xl ${hasWinnerTie ? 'bg-yellow-500/20 border-2 border-yellow-500/50' : 'bg-imposter/20 border border-imposter'}`}>
+          <p className="text-4xl mb-2">{hasWinnerTie ? '🤝' : '🏆'}</p>
+          {hasWinnerTie ? (
+            <>
+              <p className="text-yellow-400 font-bold text-sm uppercase tracking-wider mb-1">It&apos;s a Tie!</p>
+              <p className="text-xl font-bold">{winners.map((w) => w.player.name).join(' & ')}</p>
+            </>
+          ) : (
+            <p className="text-xl font-bold">{winners[0].player.name}</p>
+          )}
+          <p className="text-white/80">{winners[0].player.score} points</p>
         </div>
       )}
       <ol className="space-y-3">
-        {leaderboard.map((p, i) => (
+        {rankedLeaderboard.map(({ player, rank, isTied }, i) => (
           <li
-            key={p.id}
+            key={player.id}
             className={`flex justify-between items-center p-3 rounded-xl gap-2 ${
-              i === 0 ? 'bg-imposter/10' : 'bg-white/5'
+              rank === 1 ? 'bg-imposter/10' : 'bg-white/5'
             }`}
           >
             <span className="font-medium flex items-center gap-2">
-              <span className="text-2xl">{p.avatar ?? '👤'}</span>
-              {i + 1}. {p.name}
+              <span className="text-2xl">{player.avatar ?? '👤'}</span>
+              <span className="flex items-center gap-1">
+                {rank}. {player.name}
+                {isTied && <span className="text-yellow-400 text-xs font-semibold ml-1">(TIE)</span>}
+              </span>
             </span>
-            <span>{p.score} pts</span>
+            <span>{player.score} pts</span>
           </li>
         ))}
       </ol>

@@ -53,8 +53,11 @@ export interface GameState {
       ejectedId?: string | null;
       ejectedName?: string | null;
       wasImposter?: boolean;
+      maxVotes?: number;
       skipVotes?: number;
       skipped?: boolean;
+      tied?: boolean;
+      tiedPlayerNames?: string[];
     };
   };
   currentCluePlayerId?: string;
