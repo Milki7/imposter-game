@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 :root {
-  --background: #0f0f0f;
+  --background: #0f172a;
   --foreground: #fafafa;
   --accent: #ff4757;
-  --card-bg: #1a1a1a;
+  --card-bg: rgba(255, 255, 255, 0.05);
 }
 
 * {
@@ -18,25 +18,27 @@
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow: hidden;
   background: var(--background);
   color: var(--foreground);
-  min-height: 100dvh;
-  font-family: system-ui, -apple-system, sans-serif;
 }
 
-/* Mobile-first, TikTok-inspired: full bleed, rounded corners, dark theme */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-orbitron), sans-serif;
+}
+
+/* Glassmorphism, glowing effects */
 @layer components {
   .screen-card {
-    @apply bg-[var(--card-bg)] rounded-2xl border border-white/10 shadow-xl;
+    @apply bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 shadow-glass;
   }
   .btn-primary {
-    @apply px-6 py-3 rounded-xl font-semibold bg-imposter text-white active:scale-95 transition-transform;
+    @apply px-6 py-3 rounded-xl font-bold font-sans bg-imposter text-white shadow-glow-imposter hover:bg-imposter-light active:scale-95 transition-all;
   }
   .btn-secondary {
-    @apply px-6 py-3 rounded-xl font-semibold bg-white/10 text-white border border-white/20 active:scale-95 transition-transform;
+    @apply px-6 py-3 rounded-xl font-bold font-sans bg-white/10 text-white border border-white/20 shadow-glow-white hover:bg-white/20 active:scale-95 transition-all;
   }
   .input-field {
-    @apply w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-imposter;
+    @apply w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-innocent focus:shadow-glow-innocent backdrop-blur-md transition-all font-mono;
   }
 }

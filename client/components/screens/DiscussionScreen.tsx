@@ -103,7 +103,9 @@ export function DiscussionScreen() {
 
   if (isEjected) {
     return (
-      <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full">
+      <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full pt-16">
+        <DiscussionTimer fallbackSeconds={discussionSec} discussionTimeUp={discussionTimeUp} />
+        {discussionTimeUp && <VotingTimer />}
         <div className="flex-1 min-w-0 max-w-lg flex flex-col gap-4 overflow-y-auto">
         <div className="screen-card p-6 animate-slide-up text-center">
           <h2 className="text-xl font-bold mb-2">You were ejected</h2>
@@ -133,7 +135,9 @@ export function DiscussionScreen() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full">
+    <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full pt-16">
+      <DiscussionTimer fallbackSeconds={discussionSec} discussionTimeUp={discussionTimeUp} />
+      {discussionTimeUp && <VotingTimer />}
       <div className="flex-1 min-w-0 max-w-lg flex flex-col gap-4 overflow-y-auto">
       {/* All clues on one screen */}
       <div className="screen-card p-4 animate-slide-up">
@@ -158,11 +162,9 @@ export function DiscussionScreen() {
           })}
         </div>
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10 flex-wrap gap-2">
-          <DiscussionTimer fallbackSeconds={discussionSec} discussionTimeUp={discussionTimeUp} />
-          {!discussionTimeUp && (
+          {!discussionTimeUp ? (
             <span className="text-white/60 text-sm">{readyCount}/{totalPlayers} ready to vote</span>
-          )}
-          {discussionTimeUp && (
+          ) : (
             <span className="text-innocent text-sm font-medium">{voteCount}/{totalPlayers} voted</span>
           )}
         </div>
@@ -188,7 +190,6 @@ export function DiscussionScreen() {
         <>
           <div className="text-center py-2 flex flex-col gap-1">
             <h2 className="text-2xl font-black text-imposter uppercase tracking-wider">Vote now</h2>
-            <VotingTimer />
           </div>
           <div className="screen-card p-6 ring-2 ring-imposter">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">

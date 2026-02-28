@@ -11,17 +11,25 @@ interface DiscussionTimerProps {
 export function DiscussionTimer({ fallbackSeconds, discussionTimeUp }: DiscussionTimerProps) {
   const { discussionSeconds } = useTimers();
   
-  const displaySeconds = discussionSeconds !== null ? discussionSeconds : (discussionTimeUp ? 0 : fallbackSeconds);
-  const panicMode = !discussionTimeUp && displaySeconds > 0 && displaySeconds <= DISCUSSION_PANIC_THRESHOLD;
+  if (discussionTimeUp) {
+    return null;
+  }
+
+  const displaySeconds = discussionSeconds !== null ? discussionSeconds : fallbackSeconds;
+  const panicMode = displaySeconds > 0 && displaySeconds <= DISCUSSION_PANIC_THRESHOLD;
 
   return (
-    <span
-      className={`text-sm font-mono font-bold tabular-nums ${
-        panicMode ? 'text-red-400 animate-pulse' : 'text-white/60'
-      }`}
-    >
-      {discussionTimeUp ? 'Discussion over — vote now!' : `${displaySeconds}s to discuss`}
-    </span>
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+      <span
+        className={`text-3xl font-sans font-bold tabular-nums px-8 py-3 rounded-full border backdrop-blur-md transition-colors ${
+          panicMode
+            ? 'text-red-400 border-red-500/50 bg-red-950/40 shadow-glow-imposter animate-pulse'
+            : 'text-innocent border-innocent/30 bg-black/40 shadow-glow-innocent'
+        }`}
+      >
+        {displaySeconds}s
+      </span>
+    </div>
   );
 }
 
@@ -30,10 +38,20 @@ export function VotingTimer() {
 
   if (votingSeconds === null) return null;
 
+  const panicMode = votingSeconds > 0 && votingSeconds <= DISCUSSION_PANIC_THRESHOLD;
+
   return (
-    <p className="text-white/70 font-mono text-lg font-bold tabular-nums">
-      {votingSeconds}s to vote
-    </p>
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+      <span
+        className={`text-3xl font-sans font-bold tabular-nums px-8 py-3 rounded-full border backdrop-blur-md transition-colors ${
+          panicMode
+            ? 'text-red-400 border-red-500/50 bg-red-950/40 shadow-glow-imposter animate-pulse'
+            : 'text-imposter border-imposter/30 bg-black/40 shadow-glow-imposter'
+        }`}
+      >
+        {votingSeconds}s
+      </span>
+    </div>
   );
 }
 
@@ -43,7 +61,7 @@ export function VotingTimerSmall() {
   if (votingSeconds === null) return null;
 
   return (
-    <span className="text-imposter font-mono text-sm font-bold tabular-nums">
+    <span className="text-imposter font-sans text-sm font-bold tabular-nums">
       {votingSeconds}s left
     </span>
   );

@@ -2,9 +2,48 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useGame } from '@/components/GameProvider';
+import { useGame, type GameState } from '@/components/GameProvider';
 import { Chat } from '@/components/Chat';
 import { QuitConfirmationModal } from '@/components/QuitConfirmationModal';
+
+interface SliderProps {
+  label: string;
+  min: number;
+  max: number;
+  value: number;
+  suffix?: string;
+  onChange: (val: number) => void;
+  onCommit: (val: number) => void;
+}
+
+function CustomSlider({ label, min, max, value, suffix = '', onChange, onCommit }: SliderProps) {
+  const [localVal, setLocalVal] = useState(value);
+  
+  useEffect(() => {
+    setLocalVal(value);
+  }, [value]);
+
+  return (
+    <div>
+      <label className="block text-white/80 mb-1">{label}: {localVal}{suffix}</label>
+      <input 
+        type="range" 
+        min={min} 
+        max={max} 
+        value={localVal}
+        onChange={(e) => {
+          const v = +e.target.value;
+          setLocalVal(v);
+          onChange(v);
+        }}
+        onMouseUp={() => onCommit(localVal)}
+        onTouchEnd={() => onCommit(localVal)}
+        onBlur={() => onCommit(localVal)}
+        className="w-full" 
+      />
+    </div>
+  );
+}
 
 export function LobbyScreen() {
   const { state, startGame, updateSettings, leaveRoom, socketId } = useGame();
@@ -13,38 +52,27 @@ export function LobbyScreen() {
   const isHost = state.hostId === socketId;
   const canStart = state.players.length >= 3 && state.players.length <= 8;
 
-  const [localRounds, setLocalRounds] = useState(state.totalRounds ?? 5);
-  const [localClueInput, setLocalClueInput] = useState(state.timers?.clueInput ?? 30);
-  const [localDiscussion, setLocalDiscussion] = useState(state.timers?.discussion ?? 120);
-  const [localVoting, setLocalVoting] = useState(state.timers?.voting ?? 30);
-
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-
-  const debouncedUpdate = useCallback((settings: Parameters<typeof updateSettings>[0]) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      updateSettings(settings);
-    }, 300);
-  }, [updateSettings]);
-
-  useEffect(() => {
-    setLocalRounds(state.totalRounds ?? 5);
-    setLocalClueInput(state.timers?.clueInput ?? 30);
-    setLocalDiscussion(state.timers?.discussion ?? 120);
-    setLocalVoting(state.timers?.voting ?? 30);
-  }, [state.totalRounds, state.timers?.clueInput, state.timers?.discussion, state.timers?.voting]);
-
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
-
   const handleQuitConfirm = () => {
     leaveRoom();
     router.push('/');
     setQuitModalOpen(false);
   };
+
+  const pendingSettingsRef = useRef<Partial<GameState['timers'] & { totalRounds?: number }>>({});
+  
+  const handleSliderChange = useCallback((key: string, val: number) => {
+    if (key === 'totalRounds') pendingSettingsRef.current.totalRounds = val;
+    else if (key === 'clueInput') pendingSettingsRef.current.clueInput = val;
+    else if (key === 'discussion') pendingSettingsRef.current.discussion = val;
+    else if (key === 'voting') pendingSettingsRef.current.voting = val;
+  }, []);
+
+  const handleSliderCommit = useCallback(() => {
+    if (Object.keys(pendingSettingsRef.current).length > 0) {
+      updateSettings(pendingSettingsRef.current);
+      pendingSettingsRef.current = {};
+    }
+  }, [updateSettings]);
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full">
@@ -100,66 +128,26 @@ export function LobbyScreen() {
 
         {isHost && (
           <div className="mb-4 p-3 rounded-xl bg-white/5 text-sm space-y-3">
-            <div>
-              <label className="block text-white/80 mb-1">Rounds: {localRounds}</label>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={localRounds}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setLocalRounds(val);
-                  debouncedUpdate({ totalRounds: val });
-                }}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-white/80 mb-1">Clue timer: {localClueInput}s</label>
-              <input
-                type="range"
-                min={10}
-                max={90}
-                value={localClueInput}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setLocalClueInput(val);
-                  debouncedUpdate({ clueInput: val });
-                }}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-white/80 mb-1">Discussion: {localDiscussion}s</label>
-              <input
-                type="range"
-                min={30}
-                max={180}
-                value={localDiscussion}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setLocalDiscussion(val);
-                  debouncedUpdate({ discussion: val });
-                }}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-white/80 mb-1">Voting: {localVoting}s</label>
-              <input
-                type="range"
-                min={15}
-                max={60}
-                value={localVoting}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setLocalVoting(val);
-                  debouncedUpdate({ voting: val });
-                }}
-                className="w-full"
-              />
-            </div>
+            <CustomSlider
+              label="Rounds" min={1} max={10} value={state.totalRounds ?? 5}
+              onChange={(v) => handleSliderChange('totalRounds', v)}
+              onCommit={handleSliderCommit}
+            />
+            <CustomSlider
+              label="Clue timer" min={10} max={90} value={state.timers?.clueInput ?? 30} suffix="s"
+              onChange={(v) => handleSliderChange('clueInput', v)}
+              onCommit={handleSliderCommit}
+            />
+            <CustomSlider
+              label="Discussion" min={30} max={180} value={state.timers?.discussion ?? 120} suffix="s"
+              onChange={(v) => handleSliderChange('discussion', v)}
+              onCommit={handleSliderCommit}
+            />
+            <CustomSlider
+              label="Voting" min={15} max={60} value={state.timers?.voting ?? 30} suffix="s"
+              onChange={(v) => handleSliderChange('voting', v)}
+              onCommit={handleSliderCommit}
+            />
           </div>
         )}
 

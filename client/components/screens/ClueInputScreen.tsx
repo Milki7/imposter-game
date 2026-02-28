@@ -63,12 +63,24 @@ export function ClueInputScreen() {
   }
 
   const displayTime = secondsLeft != null ? secondsLeft : timerSec;
+  const panicMode = displayTime > 0 && displayTime <= 10;
 
   return (
-    <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
+    <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full pt-16">
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+        <span
+          className={`text-3xl font-sans font-bold tabular-nums px-8 py-3 rounded-full border backdrop-blur-md transition-colors ${
+            panicMode
+              ? 'text-red-400 border-red-500/50 bg-red-950/40 shadow-glow-imposter animate-pulse'
+              : 'text-innocent border-innocent/30 bg-black/40 shadow-glow-innocent'
+          }`}
+        >
+          {displayTime}s
+        </span>
+      </div>
       <div className="screen-card p-6 animate-slide-up">
         <h2 className="text-xl font-bold mb-2">Clue Phase (turn-based)</h2>
-        <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="mb-4">
           <p className="text-white/60 text-sm">
             {isMyTurn
               ? 'Your turn! Type one word.'
@@ -76,9 +88,6 @@ export function ClueInputScreen() {
                 ? `Waiting for ${state.currentCluePlayerName}...`
                 : 'Waiting for next player...'}
           </p>
-          <span className="font-mono text-2xl font-bold text-innocent tabular-nums min-w-[3ch]">
-            {displayTime}s
-          </span>
         </div>
         {cluesSoFar.length > 0 && (
           <div className="mb-4 space-y-1">

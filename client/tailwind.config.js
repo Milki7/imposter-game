@@ -7,8 +7,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-orbitron)', 'sans-serif'],
+        mono: ['var(--font-jetbrains)', 'monospace'],
+        display: ['var(--font-orbitron)', 'sans-serif'],
       },
       colors: {
         imposter: {
@@ -21,6 +22,13 @@ module.exports = {
           dark: '#1e9050',
           light: '#7bed9f',
         },
+        background: '#0f172a',
+      },
+      boxShadow: {
+        'glow-imposter': '0 0 15px rgba(255, 71, 87, 0.5)',
+        'glow-innocent': '0 0 15px rgba(46, 213, 115, 0.5)',
+        'glow-white': '0 0 15px rgba(255, 255, 255, 0.2)',
+        'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
