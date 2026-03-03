@@ -99,6 +99,33 @@ function CreateOrJoinScreen() {
           Guess the Imposter
         </h1>
         <p className="text-white/60 text-center text-sm mb-8">Social deduction • 3–8 players</p>
+        <div className="screen-card p-4 mb-4 text-sm space-y-3">
+          <div>
+            <h3 className="text-white font-semibold mb-1">About the game</h3>
+            <p className="text-white/75">
+              A fast social deduction game where most players are Innocents and one or two are Imposters.
+              Innocents know the secret word. Imposters only know the theme and must blend in.
+            </p>
+          </div>
+          <div>
+            <h3 className="text-white font-semibold mb-1">Game rules</h3>
+            <ul className="text-white/75 space-y-1 list-disc pl-5">
+              <li>Each player gives one clue during clue phase.</li>
+              <li>Discuss together, then vote who to eject.</li>
+              <li>If votes tie or skip wins, no one gets ejected.</li>
+              <li>Innocents win by finding all Imposters; Imposters win by surviving.</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-white font-semibold mb-1">Point system</h3>
+            <ul className="text-white/75 space-y-1 list-disc pl-5">
+              <li>Innocent correct vote (on an Imposter): +200</li>
+              <li>Trust bonus (0 votes against you): +50</li>
+              <li>Imposter survives the round: +500</li>
+              <li>Ejected Imposter correct last-chance guess: +150</li>
+            </ul>
+          </div>
+        </div>
         <div className="flex flex-col gap-3">
           <button
             onClick={() => setMode('create')}
