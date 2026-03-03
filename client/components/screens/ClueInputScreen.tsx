@@ -15,6 +15,7 @@ export function ClueInputScreen() {
   const isMyTurn = state.currentCluePlayerId === socketId;
   const timerSec = state.timers?.clueInput ?? 30;
   const cluesSoFar = state.roundData?.clues ?? [];
+  const currentTurnPlayer = state.players.find((p) => p.id === state.currentCluePlayerId);
 
   useEffect(() => {
     if (state.currentCluePlayerId !== turnStartRef.current) {
@@ -76,27 +77,41 @@ export function ClueInputScreen() {
 
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full pt-16">
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-        <span
-          className={`text-3xl font-sans font-bold tabular-nums px-8 py-3 rounded-full border backdrop-blur-md transition-colors ${
-            panicMode
-              ? 'text-red-400 border-red-500/50 bg-red-950/40 shadow-glow-imposter animate-pulse'
-              : 'text-innocent border-innocent/30 bg-black/40 shadow-glow-innocent'
-          }`}
-        >
-          {displayTime}s
-        </span>
-      </div>
+      {isMyTurn && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <span
+            className={`text-3xl font-sans font-bold tabular-nums px-8 py-3 rounded-full border backdrop-blur-md transition-colors ${
+              panicMode
+                ? 'text-red-400 border-red-500/50 bg-red-950/40 shadow-glow-imposter animate-pulse'
+                : 'text-innocent border-innocent/30 bg-black/40 shadow-glow-innocent'
+            }`}
+          >
+            {displayTime}s
+          </span>
+        </div>
+      )}
       <div className="screen-card p-6 animate-slide-up">
         <h2 className="text-xl font-bold mb-2">Clue Phase (turn-based)</h2>
         <div className="mb-4">
-          <p className="text-white/60 text-sm">
-            {isMyTurn
-              ? 'Your turn! Type one word.'
-              : state.currentCluePlayerName
-                ? `Waiting for ${state.currentCluePlayerName}...`
-                : 'Waiting for next player...'}
-          </p>
+          {isMyTurn ? (
+            <p className="text-white/80 text-sm font-medium">Your turn! Type one word.</p>
+          ) : (
+            <div className="p-3 rounded-xl bg-primary/20 border border-primary/40">
+              <p className="text-primary text-xs font-bold uppercase tracking-wider mb-2">Wait</p>
+              {currentTurnPlayer ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                    {currentTurnPlayer.avatar ?? '👤'}
+                  </span>
+                  <p className="text-white font-semibold">
+                    It&apos;s <span className="text-primary">{currentTurnPlayer.name}</span>&apos;s turn
+                  </p>
+                </div>
+              ) : (
+                <p className="text-white/70 text-sm">Waiting for next player...</p>
+              )}
+            </div>
+          )}
         </div>
         {cluesSoFar.length > 0 && (
           <div className="mb-4 space-y-2">
