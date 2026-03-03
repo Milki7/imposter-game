@@ -4,9 +4,11 @@
 
 :root {
   --background: #0f172a;
-  --foreground: #fafafa;
-  --accent: #ff4757;
-  --card-bg: rgba(255, 255, 255, 0.05);
+  --foreground: #f8fafc;
+  --primary: #6366f1;
+  --safe: #22c55e;
+  --danger: #ef4444;
+  --surface: #1e293b;
 }
 
 * {
@@ -25,20 +27,41 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-orbitron), sans-serif;
+  letter-spacing: 0.02em;
 }
 
 /* Glassmorphism, glowing effects */
 @layer components {
   .screen-card {
-    @apply bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 shadow-glass;
+    @apply backdrop-blur-md rounded-2xl border border-white/10 shadow-glass;
+    background: var(--surface);
   }
   .btn-primary {
-    @apply px-6 py-3 rounded-xl font-bold font-sans bg-imposter text-white shadow-glow-imposter hover:bg-imposter-light active:scale-95 transition-all;
+    @apply px-6 py-3 rounded-xl font-bold font-sans text-white active:scale-95 transition-all;
+    background: var(--primary);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 0 20px rgba(99, 102, 241, 0.35);
   }
   .btn-secondary {
-    @apply px-6 py-3 rounded-xl font-bold font-sans bg-white/10 text-white border border-white/20 shadow-glow-white hover:bg-white/20 active:scale-95 transition-all;
+    @apply px-6 py-3 rounded-xl font-bold font-sans text-white border border-white/20 active:scale-95 transition-all;
+    background: var(--surface);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 0 14px rgba(248, 250, 252, 0.2);
   }
   .input-field {
-    @apply w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-innocent focus:shadow-glow-innocent backdrop-blur-md transition-all font-mono;
+    @apply w-full px-4 py-3 rounded-xl border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-innocent focus:shadow-glow-innocent backdrop-blur-md transition-all font-mono;
+    background: var(--surface);
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.05);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset, 0 0 24px rgba(99, 102, 241, 0.42);
+  }
+
+  .btn-secondary:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 0 18px rgba(99, 102, 241, 0.28);
+  }
+
+  input[type='range'] {
+    accent-color: #6366f1;
   }
 }

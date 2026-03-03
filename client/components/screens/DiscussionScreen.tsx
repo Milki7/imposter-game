@@ -118,9 +118,14 @@ export function DiscussionScreen() {
             {clues.map((c) => {
               const avatar = state.players.find((p) => p.id === c.playerId)?.avatar ?? '👤';
               return (
-                <div key={c.playerId} className="p-2 rounded-lg bg-white/5 text-sm flex items-center gap-2">
-                  <span className="text-xl">{avatar}</span>
-                  <span className="text-white/60">{c.name}:</span> <span className="text-white">{c.clue}</span>
+                <div key={c.playerId} className="p-3 rounded-xl bg-surface border border-white/10 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-2xl w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                      {avatar}
+                    </span>
+                    <span className="text-white/70 text-sm truncate">{c.name}</span>
+                  </div>
+                  <span className="text-white font-bold text-lg md:text-xl">{c.clue}</span>
                 </div>
               );
             })}
@@ -151,12 +156,14 @@ export function DiscussionScreen() {
           {clues.map((c) => {
             const avatar = state.players.find((p) => p.id === c.playerId)?.avatar ?? '👤';
             return (
-              <div key={c.playerId} className="p-3 rounded-xl bg-white/5 border border-white/10 text-sm flex justify-between items-center gap-2">
-                <span className="text-white/70 font-medium flex items-center gap-2">
-                  <span className="text-xl">{avatar}</span>
-                  {c.name}
+              <div key={c.playerId} className="p-3 rounded-xl bg-surface border border-white/10 flex justify-between items-center gap-3">
+                <span className="text-white/80 font-medium flex items-center gap-2 min-w-0">
+                  <span className="text-2xl w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                    {avatar}
+                  </span>
+                  <span className="truncate">{c.name}</span>
                 </span>
-                <span className="text-white font-semibold">{c.clue}</span>
+                <span className="text-white font-bold text-lg md:text-xl">{c.clue}</span>
               </div>
             );
           })}

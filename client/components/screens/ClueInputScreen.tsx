@@ -49,12 +49,21 @@ export function ClueInputScreen() {
           <h2 className="text-xl font-bold mb-2">You were ejected</h2>
           <p className="text-white/60 mb-4">You can only watch. Clues will appear below.</p>
           {cluesSoFar.length > 0 && (
-            <div className="text-left space-y-1">
-              {cluesSoFar.map((c) => (
-                <div key={c.playerId} className="text-sm text-white/70">
-                  {c.name}: <span className="text-white">{c.clue}</span>
-                </div>
-              ))}
+            <div className="text-left space-y-2">
+              {cluesSoFar.map((c) => {
+                const avatar = state.players.find((p) => p.id === c.playerId)?.avatar ?? '👤';
+                return (
+                  <div key={c.playerId} className="p-3 rounded-xl bg-surface border border-white/10 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-2xl w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                        {avatar}
+                      </span>
+                      <span className="text-white/70 text-sm truncate">{c.name}</span>
+                    </div>
+                    <span className="text-white font-bold text-lg md:text-xl">{c.clue}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -90,13 +99,22 @@ export function ClueInputScreen() {
           </p>
         </div>
         {cluesSoFar.length > 0 && (
-          <div className="mb-4 space-y-1">
+          <div className="mb-4 space-y-2">
             <p className="text-white/80 text-xs font-medium">Clues so far:</p>
-            {cluesSoFar.map((c) => (
-              <div key={c.playerId} className="text-sm text-white/70">
-                {c.name}: <span className="text-white">{c.clue}</span>
-              </div>
-            ))}
+            {cluesSoFar.map((c) => {
+              const avatar = state.players.find((p) => p.id === c.playerId)?.avatar ?? '👤';
+              return (
+                <div key={c.playerId} className="p-3 rounded-xl bg-surface border border-white/10 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-2xl w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                      {avatar}
+                    </span>
+                    <span className="text-white/70 text-sm truncate">{c.name}</span>
+                  </div>
+                  <span className="text-white font-bold text-lg md:text-xl">{c.clue}</span>
+                </div>
+              );
+            })}
           </div>
         )}
         {alreadySubmitted ? (
