@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGame } from '@/components/GameProvider';
 import { QuitConfirmationModal } from '@/components/QuitConfirmationModal';
@@ -75,6 +75,8 @@ function CreateOrJoinScreen() {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const { createRoom, joinRoom, error, clearError } = useGame();
+  const topSectionRef = useRef<HTMLElement | null>(null);
+  const aboutSectionRef = useRef<HTMLDivElement | null>(null);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,52 +96,80 @@ function CreateOrJoinScreen() {
 
   if (mode === 'select') {
     return (
-      <div className="w-full max-w-sm mx-auto animate-fade-in">
-        <h1 className="text-3xl font-bold text-center mb-2 tracking-tight">
-          Guess the Imposter
-        </h1>
-        <p className="text-white/60 text-center text-sm mb-8">Social deduction • 3–8 players</p>
-        <div className="screen-card p-4 mb-4 text-sm space-y-3">
-          <div>
-            <h3 className="text-white font-semibold mb-1">About the game</h3>
-            <p className="text-white/75">
-              A fast social deduction game where most players are Innocents and one or two are Imposters.
-              Innocents know the secret word. Imposters only know the theme and must blend in.
-            </p>
+      <div className="w-full h-full overflow-y-auto no-scrollbar snap-y snap-mandatory animate-fade-in">
+        <section ref={topSectionRef} className="min-h-full flex flex-col justify-center snap-start">
+          <div className="w-full max-w-sm mx-auto">
+            <h1 className="text-3xl font-bold text-center mb-2 tracking-tight">
+              Guess the Imposter
+            </h1>
+            <p className="text-white/60 text-center text-sm mb-8">Social deduction • 3–8 players</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setMode('create')}
+                className="btn-primary w-full py-4 text-lg"
+              >
+                Create Room
+              </button>
+              <button
+                onClick={() => setMode('join')}
+                className="btn-secondary w-full py-4 text-lg"
+              >
+                Join Room
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => aboutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="mt-6 mx-auto w-12 h-12 rounded-full border border-white/20 bg-white/5 text-white/80 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"
+              aria-label="Go to about section"
+              title="Go to about section"
+            >
+              <span aria-hidden="true" className="text-2xl leading-none">⌄</span>
+            </button>
           </div>
-          <div>
-            <h3 className="text-white font-semibold mb-1">Game rules</h3>
-            <ul className="text-white/75 space-y-1 list-disc pl-5">
-              <li>Each player gives one clue during clue phase.</li>
-              <li>Discuss together, then vote who to eject.</li>
-              <li>If votes tie or skip wins, no one gets ejected.</li>
-              <li>Innocents win by finding all Imposters; Imposters win by surviving.</li>
-            </ul>
+        </section>
+        <section ref={aboutSectionRef} className="min-h-full flex items-center snap-start py-6">
+          <div className="w-full max-w-sm mx-auto">
+            <div className="screen-card p-4 text-sm space-y-3 w-full">
+              <div>
+                <h3 className="text-white font-semibold mb-1">About the game</h3>
+                <p className="text-white/75">
+                  Guess the Imposter is a fast social deduction game for 3-8 players. Most players are
+                  Innocents who know the secret word, while 1-2 Imposters only see the theme and try to
+                  blend in without being caught.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Game rules</h3>
+                <ul className="text-white/75 space-y-1 list-disc pl-5">
+                  <li>Clue phase: each active player gives one short clue.</li>
+                  <li>Discussion phase: compare clues and look for suspicious answers.</li>
+                  <li>Voting phase: vote to eject, or choose to skip.</li>
+                  <li>Tie/skip result: no one is ejected that round.</li>
+                  <li>Innocents win by eliminating all Imposters; Imposters win by surviving rounds.</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Point system</h3>
+                <ul className="text-white/75 space-y-1 list-disc pl-5">
+                  <li>Innocent correct vote (on an Imposter): +200</li>
+                  <li>Trust bonus (0 votes against you): +50</li>
+                  <li>Imposter survives the round: +500</li>
+                  <li>Ejected Imposter correct last-chance guess: +150</li>
+                </ul>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => topSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="mt-6 self-center w-12 h-12 rounded-full border border-white/20 bg-white/5 text-white/80 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors mx-auto"
+              aria-label="Go to top section"
+              title="Go to top section"
+            >
+              <span aria-hidden="true" className="text-2xl leading-none">⌃</span>
+            </button>
           </div>
-          <div>
-            <h3 className="text-white font-semibold mb-1">Point system</h3>
-            <ul className="text-white/75 space-y-1 list-disc pl-5">
-              <li>Innocent correct vote (on an Imposter): +200</li>
-              <li>Trust bonus (0 votes against you): +50</li>
-              <li>Imposter survives the round: +500</li>
-              <li>Ejected Imposter correct last-chance guess: +150</li>
-            </ul>
-          </div>
-        </div>
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={() => setMode('create')}
-            className="btn-primary w-full py-4 text-lg"
-          >
-            Create Room
-          </button>
-          <button
-            onClick={() => setMode('join')}
-            className="btn-secondary w-full py-4 text-lg"
-          >
-            Join Room
-          </button>
-        </div>
+        </section>
       </div>
     );
   }
