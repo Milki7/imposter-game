@@ -45,14 +45,27 @@ export function LobbyScreen() {
   const { state, startGame, updateSettings, leaveRoom, socketId } = useGame();
   const router = useRouter();
   const [quitModalOpen, setQuitModalOpen] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   const isHost = state.hostId === socketId;
   const canStart = state.players.length >= 3 && state.players.length <= 8;
+  const me = state.players.find((p) => p.id === socketId);
 
   const handleQuitConfirm = () => {
     leaveRoom();
     router.push('/');
     setQuitModalOpen(false);
   };
+
+  const handleCopyCode = useCallback(async () => {
+    if (!state.code) return;
+    try {
+      await navigator.clipboard.writeText(state.code);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 1200);
+    } catch {
+      // ignore clipboard failure silently
+    }
+  }, [state.code]);
 
   const pendingSettingsRef = useRef<Partial<GameState['timers'] & { totalRounds?: number }>>({});
   
@@ -74,10 +87,36 @@ export function LobbyScreen() {
     <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full">
       <div className="flex-1 min-w-0 max-w-lg flex flex-col gap-4 overflow-y-auto">
       <div className="screen-card p-6 animate-slide-up">
-        <h2 className="text-xl font-bold mb-2">Room {state.code}</h2>
-        <p className="text-white/60 text-sm mb-4">
-          Share this code: <span className="font-mono font-bold text-white">{state.code}</span>
-        </p>
+        <h2 className="text-xl font-bold mb-2">Lobby</h2>
+        <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/10">
+          <p className="text-white/70 text-xs uppercase tracking-wider mb-2">Your profile</p>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+              {me?.avatar ?? '👤'}
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold text-white truncate">{me?.name ?? 'You'}</p>
+              <p className="text-xs text-white/60">{isHost ? 'Host' : 'Player'}</p>
+            </div>
+          </div>
+        </div>
+        <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-white/70 text-xs uppercase tracking-wider">Room code</p>
+            <p className="font-mono font-bold text-white text-lg tracking-widest">{state.code}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleCopyCode}
+            className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+              copiedCode
+                ? 'bg-innocent/20 border-innocent text-innocent'
+                : 'bg-white/10 border-white/20 text-white hover:bg-white/15'
+            }`}
+          >
+            {copiedCode ? 'Copied' : 'Copy'}
+          </button>
+        </div>
         <p className="text-white/60 text-sm mb-4">
           {state.players.length} / 8 players (need 3–8 to start)
         </p>
@@ -149,12 +188,30 @@ export function LobbyScreen() {
 
         <ul className="space-y-2 mb-4">
           {state.players.map((p) => (
-            <li key={p.id} className="flex items-center gap-2">
+            <li
+              key={p.id}
+              className={`flex items-center gap-2 p-2 rounded-lg border ${
+                p.id === socketId
+                  ? 'bg-primary/20 border-primary/40'
+                  : 'bg-white/5 border-white/10'
+              }`}
+            >
               <span className="text-2xl w-8 text-center flex-shrink-0" title="Avatar">
                 {p.avatar ?? '👤'}
               </span>
-              {p.name}
-              {p.isHost && <span className="text-xs text-white/50">(host)</span>}
+              <span className={p.id === socketId ? 'text-white font-semibold' : 'text-white/85'}>
+                {p.name}
+              </span>
+              {p.id === socketId && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/30 text-primary border border-primary/40">
+                  You
+                </span>
+              )}
+              {p.isHost && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-imposter/20 text-imposter border border-imposter/30">
+                  Host
+                </span>
+              )}
             </li>
           ))}
         </ul>
