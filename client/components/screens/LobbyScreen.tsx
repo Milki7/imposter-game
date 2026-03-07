@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGame, type GameState } from '@/components/GameProvider';
 import { Chat } from '@/components/Chat';
@@ -18,10 +18,6 @@ interface SliderProps {
 
 function CustomSlider({ label, min, max, value, suffix = '', onChange, onCommit }: SliderProps) {
   const [localVal, setLocalVal] = useState(value);
-  
-  useEffect(() => {
-    setLocalVal(value);
-  }, [value]);
 
   return (
     <div>
@@ -36,9 +32,9 @@ function CustomSlider({ label, min, max, value, suffix = '', onChange, onCommit 
           setLocalVal(v);
           onChange(v);
         }}
-        onMouseUp={() => onCommit(localVal)}
-        onTouchEnd={() => onCommit(localVal)}
-        onBlur={() => onCommit(localVal)}
+        onMouseUp={(e) => onCommit(+(e.currentTarget as HTMLInputElement).value)}
+        onTouchEnd={(e) => onCommit(+(e.currentTarget as HTMLInputElement).value)}
+        onBlur={(e) => onCommit(+(e.currentTarget as HTMLInputElement).value)}
         className="w-full" 
       />
     </div>
