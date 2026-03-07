@@ -24,27 +24,36 @@ export function HomeScreen() {
     setQuitModalOpen(false);
   };
 
-  const GameContent = () => {
-    if (!inRoom) return <CreateOrJoinScreen />;
+  let gameContent: React.ReactNode;
+  if (!inRoom) {
+    gameContent = <CreateOrJoinScreen />;
+  } else {
     switch (state.phase) {
       case 'lobby':
-        return <LobbyScreen />;
+        gameContent = <LobbyScreen />;
+        break;
       case 'role_reveal':
-        return <RoleRevealScreen />;
+        gameContent = <RoleRevealScreen />;
+        break;
       case 'clue_input':
-        return <ClueInputScreen />;
+        gameContent = <ClueInputScreen />;
+        break;
       case 'discussion':
-        return <DiscussionScreen />;
+        gameContent = <DiscussionScreen />;
+        break;
       case 'round_results':
-        return <RoundResultsScreen />;
+        gameContent = <RoundResultsScreen />;
+        break;
       case 'imposter_last_chance':
-        return <ImposterLastChanceScreen />;
+        gameContent = <ImposterLastChanceScreen />;
+        break;
       case 'final_leaderboard':
-        return <FinalLeaderboardScreen />;
+        gameContent = <FinalLeaderboardScreen />;
+        break;
       default:
-        return <LobbyScreen />;
+        gameContent = <LobbyScreen />;
     }
-  };
+  }
 
   return (
     <>
@@ -66,7 +75,7 @@ export function HomeScreen() {
         </>
       )}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-      <GameContent />
+      {gameContent}
     </>
   );
 }
@@ -81,6 +90,7 @@ function CreateOrJoinScreen() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (name.trim()) {
       clearError();
       createRoom(name.trim());
@@ -89,6 +99,7 @@ function CreateOrJoinScreen() {
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (name.trim() && code.trim().length === 4) {
       clearError();
       joinRoom(code.trim().toUpperCase(), name.trim());
@@ -106,12 +117,14 @@ function CreateOrJoinScreen() {
             <p className="text-white/60 text-center text-sm mb-8">Social deduction • 3–8 players</p>
             <div className="flex flex-col gap-3">
               <button
+                type="button"
                 onClick={() => setMode('create')}
                 className="btn-primary w-full py-4 text-lg"
               >
                 Create Room
               </button>
               <button
+                type="button"
                 onClick={() => setMode('join')}
                 className="btn-secondary w-full py-4 text-lg"
               >
@@ -179,13 +192,14 @@ function CreateOrJoinScreen() {
     return (
       <div className="w-full max-w-sm mx-auto animate-fade-in">
         <button
+          type="button"
           onClick={() => { setMode('select'); clearError(); }}
           className="text-white/60 text-sm mb-4 hover:text-white"
         >
           ← Back
         </button>
         <h2 className="text-xl font-semibold mb-4">Create Room</h2>
-        <form onSubmit={handleCreate} className="space-y-4">
+        <form noValidate onSubmit={handleCreate} className="space-y-4">
           <input
             type="text"
             value={name}
@@ -207,13 +221,14 @@ function CreateOrJoinScreen() {
   return (
     <div className="w-full max-w-sm mx-auto animate-fade-in">
       <button
+        type="button"
         onClick={() => { setMode('select'); clearError(); }}
         className="text-white/60 text-sm mb-4 hover:text-white"
       >
         ← Back
       </button>
       <h2 className="text-xl font-semibold mb-4">Join Room</h2>
-      <form onSubmit={handleJoin} className="space-y-4">
+      <form noValidate onSubmit={handleJoin} className="space-y-4">
         <input
           type="text"
           value={name}
