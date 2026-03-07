@@ -24,11 +24,8 @@ export function HomeScreen() {
     setQuitModalOpen(false);
   };
 
-  if (!inRoom) {
-    return <CreateOrJoinScreen />;
-  }
-
   const GameContent = () => {
+    if (!inRoom) return <CreateOrJoinScreen />;
     switch (state.phase) {
       case 'lobby':
         return <LobbyScreen />;
@@ -51,19 +48,23 @@ export function HomeScreen() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setQuitModalOpen(true)}
-        className="fixed top-4 right-4 z-40 py-2 px-4 rounded-lg text-sm font-medium bg-white/10 text-white/90 border border-white/20 hover:bg-white/15 transition-colors"
-        aria-label="Quit game"
-      >
-        Quit
-      </button>
-      <QuitConfirmationModal
-        isOpen={quitModalOpen}
-        onClose={() => setQuitModalOpen(false)}
-        onConfirm={handleQuitConfirm}
-      />
+      {inRoom && (
+        <>
+          <button
+            type="button"
+            onClick={() => setQuitModalOpen(true)}
+            className="fixed top-4 right-4 z-40 py-2 px-4 rounded-lg text-sm font-medium bg-white/10 text-white/90 border border-white/20 hover:bg-white/15 transition-colors"
+            aria-label="Quit game"
+          >
+            Quit
+          </button>
+          <QuitConfirmationModal
+            isOpen={quitModalOpen}
+            onClose={() => setQuitModalOpen(false)}
+            onConfirm={handleQuitConfirm}
+          />
+        </>
+      )}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <GameContent />
     </>

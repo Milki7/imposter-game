@@ -302,10 +302,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setImposterGuessResult(data?.correct ?? false);
     });
 
-    socket.on(EVENTS.PLAYER_EXIT, (data: { playerName: string; playerAvatar?: string; reason: 'quit' | 'disconnect' }) => {
+    socket.on(EVENTS.PLAYER_EXIT, (data: { playerName: string; playerAvatar?: string; isHost?: boolean; reason: 'quit' | 'disconnect' }) => {
       const action = data.reason === 'quit' ? 'left the game' : 'disconnected';
+      const message = data.isHost
+        ? (data.reason === 'quit' ? 'Host left the game.' : 'Host disconnected.')
+        : `${data.playerName} ${action}`;
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      toastsRef.current((prev) => [...prev, { id, message: `${data.playerName} ${action}`, type: 'warning' as const, avatar: data.playerAvatar }]);
+      toastsRef.current((prev) => [...prev, { id, message, type: 'warning' as const, avatar: data.playerAvatar }]);
     });
 
     socket.on(EVENTS.VOTE_REQUIREMENTS_UPDATED, (data: { requiredVotes: number; currentVotes: number; activePlayerCount: number }) => {

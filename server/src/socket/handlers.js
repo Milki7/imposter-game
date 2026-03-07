@@ -406,13 +406,15 @@ export function registerSocketHandlers(io) {
     /**
      * Host leaves: immediately end room and return everyone to home screen.
      * @param {import('../game/Room.js').Room} room
+     * @param {string} message
      */
-    const closeRoomForAll = (room) => {
+    const closeRoomForAll = (room, message) => {
       const code = room.code;
       clearDiscussionTimers(code);
       clearPhaseTimeout(code);
       const playerIds = room.getPlayerList().map((p) => p.id);
       for (const id of playerIds) {
+        io.to(id).emit(EVENTS.ROOM_ERROR, { message });
         io.to(id).emit(EVENTS.ROOM_LEFT);
         const s = io.sockets.sockets.get(id);
         if (s) s.leave(code);
@@ -469,12 +471,18 @@ export function registerSocketHandlers(io) {
       socket.to(code).emit(EVENTS.PLAYER_EXIT, {
         playerName,
         playerAvatar,
+        isHost: wasHost,
         reason,
       });
 
       if (wasHost) {
         // Host leaving ends the room immediately for everyone.
-        closeRoomForAll(room);
+        closeRoomForAll(
+          room,
+          reason === 'disconnect'
+            ? 'Host disconnected. Room closed.'
+            : 'Host left the game. Room closed.'
+        );
         return;
       }
 
