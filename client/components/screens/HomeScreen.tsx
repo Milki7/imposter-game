@@ -84,6 +84,7 @@ function CreateOrJoinScreen() {
   const [mode, setMode] = useState<'select' | 'create' | 'join'>('select');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
   const { createRoom, joinRoom, error, clearError } = useGame();
   const topSectionRef = useRef<HTMLElement | null>(null);
   const aboutSectionRef = useRef<HTMLDivElement | null>(null);
@@ -91,19 +92,33 @@ function CreateOrJoinScreen() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (name.trim()) {
-      clearError();
-      createRoom(name.trim());
+    if (!name.trim()) {
+      setValidationError('Please enter your name.');
+      return;
     }
+    setValidationError(null);
+    clearError();
+    createRoom(name.trim());
   };
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (name.trim() && code.trim().length === 4) {
-      clearError();
-      joinRoom(code.trim().toUpperCase(), name.trim());
+    if (!name.trim()) {
+      setValidationError('Please enter your name.');
+      return;
     }
+    if (!code.trim()) {
+      setValidationError('Please add the code.');
+      return;
+    }
+    if (code.trim().length !== 4) {
+      setValidationError('Code must be 4 letters.');
+      return;
+    }
+    setValidationError(null);
+    clearError();
+    joinRoom(code.trim().toUpperCase(), name.trim());
   };
 
   if (mode === 'select') {
@@ -118,14 +133,20 @@ function CreateOrJoinScreen() {
             <div className="flex flex-col gap-3">
               <button
                 type="button"
-                onClick={() => setMode('create')}
+                onClick={() => {
+                  setValidationError(null);
+                  setMode('create');
+                }}
                 className="btn-primary w-full py-4 text-lg"
               >
                 Create Room
               </button>
               <button
                 type="button"
-                onClick={() => setMode('join')}
+                onClick={() => {
+                  setValidationError(null);
+                  setMode('join');
+                }}
                 className="btn-secondary w-full py-4 text-lg"
               >
                 Join Room
@@ -193,7 +214,7 @@ function CreateOrJoinScreen() {
       <div className="w-full max-w-sm mx-auto animate-fade-in">
         <button
           type="button"
-          onClick={() => { setMode('select'); clearError(); }}
+          onClick={() => { setMode('select'); clearError(); setValidationError(null); }}
           className="text-white/60 text-sm mb-4 hover:text-white"
         >
           ← Back
@@ -203,14 +224,18 @@ function CreateOrJoinScreen() {
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (validationError) setValidationError(null);
+            }}
             placeholder="Your name"
             maxLength={20}
             className="input-field"
             autoFocus
           />
+          {validationError && <p className="text-yellow-300 text-sm">{validationError}</p>}
           {error && <p className="text-imposter text-sm">{error}</p>}
-          <button type="submit" className="btn-primary w-full py-4" disabled={!name.trim()}>
+          <button type="submit" className="btn-primary w-full py-4">
             Create
           </button>
         </form>
@@ -222,7 +247,7 @@ function CreateOrJoinScreen() {
     <div className="w-full max-w-sm mx-auto animate-fade-in">
       <button
         type="button"
-        onClick={() => { setMode('select'); clearError(); }}
+        onClick={() => { setMode('select'); clearError(); setValidationError(null); }}
         className="text-white/60 text-sm mb-4 hover:text-white"
       >
         ← Back
@@ -232,7 +257,10 @@ function CreateOrJoinScreen() {
         <input
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (validationError) setValidationError(null);
+          }}
           placeholder="Your name"
           maxLength={20}
           className="input-field"
@@ -240,16 +268,19 @@ function CreateOrJoinScreen() {
         <input
           type="text"
           value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 4))}
+          onChange={(e) => {
+            setCode(e.target.value.toUpperCase().slice(0, 4));
+            if (validationError) setValidationError(null);
+          }}
           placeholder="4-letter code"
           maxLength={4}
           className="input-field uppercase tracking-widest text-center"
         />
+        {validationError && <p className="text-yellow-300 text-sm">{validationError}</p>}
         {error && <p className="text-imposter text-sm">{error}</p>}
         <button
           type="submit"
           className="btn-primary w-full py-4"
-          disabled={!name.trim() || code.length !== 4}
         >
           Join
         </button>

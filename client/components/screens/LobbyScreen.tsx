@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGame, type GameState } from '@/components/GameProvider';
 import { Chat } from '@/components/Chat';
@@ -12,11 +12,10 @@ interface SliderProps {
   max: number;
   value: number;
   suffix?: string;
-  onChange: (val: number) => void;
   onCommit: (val: number) => void;
 }
 
-function CustomSlider({ label, min, max, value, suffix = '', onChange, onCommit }: SliderProps) {
+function CustomSlider({ label, min, max, value, suffix = '', onCommit }: SliderProps) {
   const [localVal, setLocalVal] = useState(value);
 
   return (
@@ -30,7 +29,6 @@ function CustomSlider({ label, min, max, value, suffix = '', onChange, onCommit 
         onChange={(e) => {
           const v = +e.target.value;
           setLocalVal(v);
-          onChange(v);
         }}
         onMouseUp={(e) => onCommit(+(e.currentTarget as HTMLInputElement).value)}
         onTouchEnd={(e) => onCommit(+(e.currentTarget as HTMLInputElement).value)}
@@ -67,20 +65,12 @@ export function LobbyScreen() {
     }
   }, [state.code]);
 
-  const pendingSettingsRef = useRef<Partial<GameState['timers'] & { totalRounds?: number }>>({});
-  
-  const handleSliderChange = useCallback((key: string, val: number) => {
-    if (key === 'totalRounds') pendingSettingsRef.current.totalRounds = val;
-    else if (key === 'clueInput') pendingSettingsRef.current.clueInput = val;
-    else if (key === 'discussion') pendingSettingsRef.current.discussion = val;
-    else if (key === 'voting') pendingSettingsRef.current.voting = val;
-  }, []);
-
-  const handleSliderCommit = useCallback(() => {
-    if (Object.keys(pendingSettingsRef.current).length > 0) {
-      updateSettings(pendingSettingsRef.current);
-      pendingSettingsRef.current = {};
+  const handleSliderCommit = useCallback((key: 'totalRounds' | 'clueInput' | 'discussion' | 'voting', val: number) => {
+    if (key === 'totalRounds') {
+      updateSettings({ totalRounds: val });
+      return;
     }
+    updateSettings({ [key]: val } as Partial<GameState['timers']>);
   }, [updateSettings]);
 
   return (
@@ -167,23 +157,19 @@ export function LobbyScreen() {
           <div className="mb-4 p-3 rounded-xl bg-white/5 text-sm space-y-3">
             <CustomSlider
               label="Rounds" min={1} max={10} value={state.totalRounds ?? 5}
-              onChange={(v) => handleSliderChange('totalRounds', v)}
-              onCommit={handleSliderCommit}
+              onCommit={(v) => handleSliderCommit('totalRounds', v)}
             />
             <CustomSlider
               label="Clue timer" min={10} max={90} value={state.timers?.clueInput ?? 30} suffix="s"
-              onChange={(v) => handleSliderChange('clueInput', v)}
-              onCommit={handleSliderCommit}
+              onCommit={(v) => handleSliderCommit('clueInput', v)}
             />
             <CustomSlider
               label="Discussion" min={30} max={180} value={state.timers?.discussion ?? 120} suffix="s"
-              onChange={(v) => handleSliderChange('discussion', v)}
-              onCommit={handleSliderCommit}
+              onCommit={(v) => handleSliderCommit('discussion', v)}
             />
             <CustomSlider
               label="Voting" min={15} max={60} value={state.timers?.voting ?? 30} suffix="s"
-              onChange={(v) => handleSliderChange('voting', v)}
-              onCommit={handleSliderCommit}
+              onCommit={(v) => handleSliderCommit('voting', v)}
             />
           </div>
         )}
