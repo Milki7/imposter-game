@@ -508,11 +508,14 @@ export function registerSocketHandlers(io) {
         return;
       }
 
-      if (phase === PHASE.CLUE_INPUT && wasCurrentCluePlayer) {
-        clearPhaseTimeout(code);
-        roomStill.skipClueTurn();
-        scheduleClueTurnOrDiscussion(roomStill, io);
-        return;
+      if (phase === PHASE.CLUE_INPUT) {
+        const currentId = roomStill.getCurrentCluePlayerId();
+        const currentMissing = currentId && !roomStill.players.has(currentId);
+        if (wasCurrentCluePlayer || currentMissing) {
+          clearPhaseTimeout(code);
+          scheduleClueTurnOrDiscussion(roomStill, io);
+          return;
+        }
       }
 
       if (phase === PHASE.DISCUSSION) {

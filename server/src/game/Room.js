@@ -145,6 +145,24 @@ export class Room {
    * @param {string} id
    */
   removePlayer(id) {
+    // Keep clue turn order consistent when a player leaves mid-round.
+    // Without this, clients can get stuck waiting on a removed player's turn.
+    const turnIdx = this.clueTurnOrder.indexOf(id);
+    if (turnIdx !== -1) {
+      this.clueTurnOrder.splice(turnIdx, 1);
+      if (turnIdx < this.clueTurnIndex) {
+        this.clueTurnIndex = Math.max(0, this.clueTurnIndex - 1);
+      }
+    }
+
+    // Clean up round-scoped collections for the departed player.
+    if (this.roundData?.votes && this.roundData.votes[id] != null) {
+      delete this.roundData.votes[id];
+    }
+    if (Array.isArray(this.roundData?.readyPlayerIds)) {
+      this.roundData.readyPlayerIds = this.roundData.readyPlayerIds.filter((pid) => pid !== id);
+    }
+
     this.players.delete(id);
     if (this.hostId === id && this.players.size > 0) {
       this.hostId = this.getPlayerList()[0].id;
