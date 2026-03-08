@@ -10,6 +10,22 @@ const HURRY_UP_SECONDS = 10;
 
 const selectedStyle = 'border-innocent border-2 bg-innocent/20 ring-2 ring-innocent/50';
 const unselectedStyle = 'border-white/20 bg-white/5 hover:bg-white/10';
+const profileStyles = [
+  'bg-indigo-500/20 border-indigo-400/40',
+  'bg-emerald-500/20 border-emerald-400/40',
+  'bg-rose-500/20 border-rose-400/40',
+  'bg-amber-500/20 border-amber-400/40',
+  'bg-cyan-500/20 border-cyan-400/40',
+  'bg-violet-500/20 border-violet-400/40',
+  'bg-teal-500/20 border-teal-400/40',
+  'bg-fuchsia-500/20 border-fuchsia-400/40',
+];
+
+function getProfileStyle(playerId: string) {
+  let hash = 0;
+  for (let i = 0; i < playerId.length; i++) hash = (hash + playerId.charCodeAt(i)) % profileStyles.length;
+  return profileStyles[hash];
+}
 
 interface VoteButtonProps {
   player: { id: string; name: string; avatar?: string };
@@ -117,13 +133,30 @@ export function DiscussionScreen() {
             <p className="text-white/80 text-sm font-medium">Clues this round:</p>
             {clues.map((c) => {
               const avatar = state.players.find((p) => p.id === c.playerId)?.avatar ?? '👤';
+              const isMe = c.playerId === socketId;
               return (
-                <div key={c.playerId} className="p-3 rounded-xl bg-surface border border-white/10 flex items-center justify-between gap-3">
+                <div
+                  key={c.playerId}
+                  className={`p-3 rounded-xl flex items-center justify-between gap-3 ${
+                    isMe
+                      ? 'bg-primary/15 border-2 border-primary/50 ring-1 ring-primary/40'
+                      : 'bg-surface border border-white/10'
+                  }`}
+                >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-2xl w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                    <span
+                      className={`text-2xl w-10 h-10 rounded-full border flex items-center justify-center ${getProfileStyle(c.playerId)}`}
+                    >
                       {avatar}
                     </span>
-                    <span className="text-white/70 text-sm truncate">{c.name}</span>
+                    <span className={`${isMe ? 'text-primary' : 'text-white/70'} text-sm font-semibold truncate`}>
+                      {c.name}
+                      {isMe && (
+                        <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-primary/25 border border-primary/40 align-middle text-primary">
+                          You
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <span className="text-white font-bold text-lg md:text-xl">{c.clue}</span>
                 </div>
@@ -155,13 +188,30 @@ export function DiscussionScreen() {
         <div className="grid grid-cols-1 gap-2">
           {clues.map((c) => {
             const avatar = state.players.find((p) => p.id === c.playerId)?.avatar ?? '👤';
+            const isMe = c.playerId === socketId;
             return (
-              <div key={c.playerId} className="p-3 rounded-xl bg-surface border border-white/10 flex justify-between items-center gap-3">
+              <div
+                key={c.playerId}
+                className={`p-3 rounded-xl flex justify-between items-center gap-3 ${
+                  isMe
+                    ? 'bg-primary/15 border-2 border-primary/50 ring-1 ring-primary/40'
+                    : 'bg-surface border border-white/10'
+                }`}
+              >
                 <span className="text-white/80 font-medium flex items-center gap-2 min-w-0">
-                  <span className="text-2xl w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                  <span
+                    className={`text-2xl w-10 h-10 rounded-full border flex items-center justify-center flex-shrink-0 ${getProfileStyle(c.playerId)}`}
+                  >
                     {avatar}
                   </span>
-                  <span className="truncate">{c.name}</span>
+                  <span className={`${isMe ? 'text-primary' : 'text-white/80'} font-semibold truncate`}>
+                    {c.name}
+                    {isMe && (
+                      <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-primary/25 border border-primary/40 align-middle text-primary">
+                        You
+                      </span>
+                    )}
+                  </span>
                 </span>
                 <span className="text-white font-bold text-lg md:text-xl">{c.clue}</span>
               </div>
