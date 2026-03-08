@@ -8,7 +8,7 @@ interface ChatProps {
 }
 
 export const Chat = memo(function Chat({ frozen = false }: ChatProps) {
-  const { sendChatMessage } = useGame();
+  const { sendChatMessage, socketId } = useGame();
   const { chatHistory, players } = useChat();
   const [input, setInput] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
@@ -56,10 +56,26 @@ export const Chat = memo(function Chat({ frozen = false }: ChatProps) {
               );
             }
             const avatar = players.find((p) => p.id === m.playerId)?.avatar ?? '👤';
+            const isMe = m.playerId === socketId;
             return (
-              <div key={`${m.playerId}-${m.timestamp}`} className="text-sm flex items-center gap-2">
+              <div
+                key={`${m.playerId}-${m.timestamp}`}
+                className={`text-sm flex items-center gap-2 rounded-lg px-2 py-1 border ${
+                  isMe
+                    ? 'bg-primary/15 border-primary/40 ring-1 ring-primary/30'
+                    : 'bg-white/5 border-white/10'
+                }`}
+              >
                 <span className="text-lg flex-shrink-0">{avatar}</span>
-                <span className="text-imposter font-medium">{m.name}:</span>{' '}
+                <span className={`${isMe ? 'text-primary' : 'text-imposter'} font-medium`}>
+                  {m.name}
+                  {isMe && (
+                    <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/25 border border-primary/40 align-middle">
+                      You
+                    </span>
+                  )}
+                  :
+                </span>{' '}
                 <span className="text-white/90">{m.message}</span>
               </div>
             );
