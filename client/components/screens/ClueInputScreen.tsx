@@ -46,7 +46,7 @@ export function ClueInputScreen() {
   if (isEjected) {
     return (
       <div className="w-full max-w-lg mx-auto flex flex-col gap-4 h-full">
-        <div className="screen-card p-6 animate-slide-up text-center">
+      <div className="screen-card p-4 sm:p-6 animate-slide-up text-center">
           <h2 className="text-xl font-bold mb-2">You were ejected</h2>
           <p className="text-white/60 mb-4">You can only watch. Clues will appear below.</p>
           {cluesSoFar.length > 0 && (
@@ -80,7 +80,7 @@ export function ClueInputScreen() {
       {isMyTurn && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
           <span
-            className={`text-3xl font-sans font-bold tabular-nums px-8 py-3 rounded-full border backdrop-blur-md transition-colors ${
+            className={`text-2xl sm:text-3xl font-sans font-bold tabular-nums px-5 sm:px-8 py-2.5 sm:py-3 rounded-full border backdrop-blur-md transition-colors ${
               panicMode
                 ? 'text-red-400 border-red-500/50 bg-red-950/40 shadow-glow-imposter animate-pulse'
                 : 'text-innocent border-innocent/30 bg-black/40 shadow-glow-innocent'
@@ -90,7 +90,7 @@ export function ClueInputScreen() {
           </span>
         </div>
       )}
-      <div className="screen-card p-6 animate-slide-up">
+      <div className="screen-card p-4 sm:p-6 animate-slide-up">
         <h2 className="text-xl font-bold mb-2">Clue Phase (turn-based)</h2>
         <div className="mb-4">
           {isMyTurn ? (

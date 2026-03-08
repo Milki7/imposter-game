@@ -103,7 +103,7 @@ export function DiscussionScreen() {
 
   if (isEjected) {
     return (
-      <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full pt-16">
+      <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-3 sm:gap-4 h-full pt-16">
         <DiscussionTimer fallbackSeconds={discussionSec} discussionTimeUp={discussionTimeUp} />
         {discussionTimeUp && <VotingTimer />}
         <div className="flex-1 min-w-0 max-w-lg flex flex-col gap-4 overflow-y-auto">
@@ -132,7 +132,7 @@ export function DiscussionScreen() {
           </div>
         </div>
         </div>
-        <aside className="w-full lg:w-72 flex-shrink-0 flex flex-col min-h-0">
+        <aside className={`${discussionTimeUp ? 'hidden lg:flex' : 'flex'} w-full lg:w-72 flex-shrink-0 flex-col min-h-0`}>
           <Chat frozen={discussionTimeUp} />
         </aside>
       </div>
@@ -140,7 +140,7 @@ export function DiscussionScreen() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full pt-16">
+    <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-3 sm:gap-4 h-full pt-16">
       <DiscussionTimer fallbackSeconds={discussionSec} discussionTimeUp={discussionTimeUp} />
       {discussionTimeUp && <VotingTimer />}
       <div className="flex-1 min-w-0 max-w-lg flex flex-col gap-4 overflow-y-auto">
@@ -241,7 +241,7 @@ export function DiscussionScreen() {
         </>
       )}
       </div>
-      <aside className="w-full lg:w-72 flex-shrink-0 flex flex-col min-h-0">
+      <aside className={`${discussionTimeUp ? 'hidden lg:flex' : 'flex'} w-full lg:w-72 flex-shrink-0 flex-col min-h-0`}>
         <Chat frozen={discussionTimeUp} />
       </aside>
     </div>

@@ -33,7 +33,7 @@ export const Chat = memo(function Chat({ frozen = false }: ChatProps) {
   }, []);
 
   return (
-    <div className="screen-card flex flex-col flex-1 min-h-[200px] max-h-[280px]">
+    <div className="screen-card flex flex-col flex-1 min-h-[200px] max-h-[42dvh] lg:max-h-[340px]">
       <div className="p-3 border-b border-white/10 flex items-center justify-between">
         <p className="text-sm font-medium">Chat</p>
         {frozen && (
@@ -78,7 +78,7 @@ export const Chat = memo(function Chat({ frozen = false }: ChatProps) {
             onChange={handleInputChange}
             placeholder="Type a message..."
             maxLength={200}
-            className="input-field flex-1 py-2 text-sm"
+            className="input-field flex-1 py-2 text-sm min-w-0"
           />
           <button type="submit" className="btn-primary py-2 px-4 text-sm" disabled={!input.trim()}>
             Send

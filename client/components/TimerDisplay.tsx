@@ -21,7 +21,7 @@ export function DiscussionTimer({ fallbackSeconds, discussionTimeUp }: Discussio
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
       <span
-        className={`text-3xl font-sans font-bold tabular-nums px-8 py-3 rounded-full border backdrop-blur-md transition-colors ${
+        className={`text-2xl sm:text-3xl font-sans font-bold tabular-nums px-5 sm:px-8 py-2.5 sm:py-3 rounded-full border backdrop-blur-md transition-colors ${
           panicMode
             ? 'text-red-400 border-red-500/50 bg-red-950/40 shadow-glow-imposter animate-pulse'
             : 'text-innocent border-innocent/30 bg-black/40 shadow-glow-innocent'
@@ -43,7 +43,7 @@ export function VotingTimer() {
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
       <span
-        className={`text-3xl font-sans font-bold tabular-nums px-8 py-3 rounded-full border backdrop-blur-md transition-colors ${
+        className={`text-2xl sm:text-3xl font-sans font-bold tabular-nums px-5 sm:px-8 py-2.5 sm:py-3 rounded-full border backdrop-blur-md transition-colors ${
           panicMode
             ? 'text-red-400 border-red-500/50 bg-red-950/40 shadow-glow-imposter animate-pulse'
             : 'text-imposter border-imposter/30 bg-black/40 shadow-glow-imposter'

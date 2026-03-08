@@ -9,7 +9,7 @@ export function RoleRevealScreen() {
   const imposterCount = state.players.length <= 5 ? 1 : (state.numberOfImposters ?? 1);
 
   return (
-    <div className="w-full max-w-md mx-auto screen-card p-8 animate-slide-up text-center">
+    <div className="w-full max-w-md mx-auto screen-card p-5 sm:p-8 animate-slide-up text-center">
       <h2 className="text-2xl font-bold mb-6">Your Role</h2>
       <p className="text-white/60 text-sm mb-4">
         {imposterCount === 1 ? 'There is 1 Imposter' : `There are ${imposterCount} Imposters`} among you.

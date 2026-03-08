@@ -44,7 +44,7 @@ export function FinalLeaderboardScreen() {
   const hasWinnerTie = winners.length > 1;
 
   return (
-    <div className="w-full max-w-lg mx-auto screen-card p-8 animate-slide-up">
+    <div className="w-full max-w-lg mx-auto screen-card p-4 sm:p-8 animate-slide-up">
       <h2 className="text-2xl font-bold text-center mb-6">Final Leaderboard</h2>
       {imposterFled && (
         <div className="mb-6 p-5 rounded-xl bg-innocent/20 border-2 border-innocent text-center">

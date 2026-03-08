@@ -74,9 +74,9 @@ export function LobbyScreen() {
   }, [updateSettings]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-4 h-full">
-      <div className="flex-1 min-w-0 max-w-lg flex flex-col gap-4 overflow-y-auto">
-      <div className="screen-card p-6 animate-slide-up">
+    <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-3 sm:gap-4 h-full">
+      <div className="flex-1 min-w-0 max-w-lg flex flex-col gap-3 sm:gap-4 overflow-y-auto">
+      <div className="screen-card p-4 sm:p-6 animate-slide-up">
         <h2 className="text-xl font-bold mb-2">Lobby</h2>
         <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/10">
           <p className="text-white/70 text-xs uppercase tracking-wider mb-2">Your profile</p>
@@ -223,7 +223,7 @@ export function LobbyScreen() {
         onConfirm={handleQuitConfirm}
       />
       </div>
-      <aside className="w-full lg:w-72 flex-shrink-0 flex flex-col min-h-0">
+      <aside className="w-full lg:w-80 xl:w-96 flex-shrink-0 flex flex-col min-h-0">
         <Chat />
       </aside>
     </div>

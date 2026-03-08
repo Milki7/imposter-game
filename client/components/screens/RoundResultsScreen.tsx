@@ -9,7 +9,7 @@ export function RoundResultsScreen() {
   const isGameOver = state.phase === 'final_leaderboard' || activeCount < 3;
 
   return (
-    <div className="w-full max-w-lg mx-auto screen-card p-6 animate-slide-up">
+    <div className="w-full max-w-lg mx-auto screen-card p-4 sm:p-6 animate-slide-up">
       <h2 className="text-xl font-bold mb-4">Round {state.currentRound} Results</h2>
       {results?.skipped ? (
         <div className="p-4 rounded-xl mb-4 bg-white/10 border border-white/20">
