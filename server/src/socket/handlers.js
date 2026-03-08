@@ -369,10 +369,14 @@ function endGameAndShowLeaderboard(room, io, gameEndReason) {
  */
 function finishRound(room, io) {
   const code = room.code;
-  room.phase = PHASE.ROUND_RESULTS;
-  room.getPlayerList().forEach((p) => {
-    io.to(p.id).emit(EVENTS.GAME_STATE, room.getPublicState(p.id));
-  });
+  const alreadyInRoundResults = room.phase === PHASE.ROUND_RESULTS;
+  if (!alreadyInRoundResults) {
+    room.phase = PHASE.ROUND_RESULTS;
+    room.getPlayerList().forEach((p) => {
+      io.to(p.id).emit(EVENTS.GAME_STATE, room.getPublicState(p.id));
+    });
+    io.to(code).emit(EVENTS.PHASE_CHANGED, { phase: PHASE.ROUND_RESULTS, roomCode: code });
+  }
   io.to(code).emit(EVENTS.ROUND_RESULTS, { roundData: room.roundData });
 
   if (room.isGameOver()) {
